@@ -1,0 +1,140 @@
+{
+  "media": {
+    "logo": "./assets/logo.svg"
+  },
+  "header": {
+    "badge": "Tiện ích Ngân hàng & Tài chính",
+    "title": "Công cụ tính lãi suất tiền gửi sản phẩm tiền gửi thông thường trả lãi sau",
+    "subtitle": "Hỗ trợ khách hàng tính toán chính xác tiền lãi dự tính và tổng số tiền nhận khi đáo hạn theo biểu lãi suất tham chiếu mới nhất."
+  },
+  "calculator": {
+    "depositSectionTitle": "Tiền gửi dự tính",
+    "resultSectionTitle": "Tiền lãi dự tính",
+    "labels": {
+      "depositAmount": "Tổng tiền gửi",
+      "term": "Kỳ hạn (Tháng)",
+      "interestRate": "Lãi suất",
+      "interestEarned": "Số tiền lãi",
+      "totalPayout": "Tổng tiền",
+      "termPlaceholder": "Chọn kỳ hạn",
+      "currencyUnit": "VND",
+      "rateUnit": "%/năm",
+      "startDate": "Ngày gửi tiền",
+      "maturityDate": "Ngày đáo hạn",
+      "actualDays": "Số ngày gửi thực tế",
+      "calculationMethod": "Phương thức tính",
+      "methodStandard": "Quy ước tháng (Chuẩn kỳ hạn)",
+      "methodActualDays": "Ngày thực tế / 365 ngày"
+    },
+    "quickAmounts": [
+      { "label": "+10 triệu", "value": 10000000 },
+      { "label": "+50 triệu", "value": 50000000 },
+      { "label": "+100 triệu", "value": 100000000 },
+      { "label": "+500 triệu", "value": 500000000 },
+      { "label": "+1 tỷ", "value": 1000000000 }
+    ],
+    "quickPresets": [
+      { "label": "Gói tiết kiệm 50 triệu - 6 tháng", "amount": 50000000, "termId": "6m_to_7m" },
+      { "label": "Gói tích lũy 100 triệu - 12 tháng", "amount": 100000000, "termId": "12m" },
+      { "label": "Gói đầu tư 500 triệu - 24 tháng", "amount": 500000000, "termId": "24m_to_36m" }
+    ],
+    "validation": {
+      "amountRequired": "Vui lòng nhập số tiền gửi hợp lệ.",
+      "amountInvalid": "Vui lòng nhập số tiền gửi hợp lệ.",
+      "amountMinWarning": "Cảnh báo: Số tiền gửi tối thiểu theo quy định là 1.000.000 VND.",
+      "termRequired": "Vui lòng chọn kỳ hạn gửi.",
+      "rateRequired": "Vui lòng nhập lãi suất hợp lệ.",
+      "rateInvalid": "Vui lòng nhập lãi suất hợp lệ.",
+      "rateCapWarning": "Cảnh báo: Lãi suất vượt quá mức trần quy định (Trần tối đa hiện tại: 15%/năm)."
+    },
+    "formulaExplanation": {
+      "title": "Công thức tính lãi suất trả sau",
+      "formula": "Số tiền lãi = (Số tiền gửi × Lãi suất × Số ngày gửi thực tế) / 365",
+      "note": "Tiền gửi lĩnh lãi cuối kỳ (trả lãi sau): Tiền lãi được tính trên cơ sở 365 ngày theo Thông tư số 14/2017/TT-NHNN của Ngân hàng Nhà nước Việt Nam."
+    },
+    "summaryDetails": {
+      "principalTitle": "Tiền gốc ban đầu",
+      "interestTitle": "Lãi tích lũy dự tính",
+      "monthlyEquivalentTitle": "Tương đương mỗi tháng",
+      "dailyEquivalentTitle": "Tương đương mỗi ngày",
+      "maturityText": "Khi đáo hạn bạn sẽ nhận được:",
+      "inWordsLabel": "Bằng chữ"
+    },
+    "actions": {
+      "reset": "Đặt lại",
+      "copyResult": "Sao chép kết quả",
+      "copied": "Đã sao chép!",
+      "viewReferenceTable": "Xem biểu lãi suất",
+      "hideReferenceTable": "Ẩn biểu lãi suất"
+    }
+  },
+  "rules": {
+    "title": "Nguyên tắc nghiệp vụ",
+    "subtitle": "Quy định bắt buộc đối với công cụ tính lãi suất tiền gửi",
+    "items": [
+      {
+        "category": "Số tiền gửi",
+        "requirements": [
+          "Bắt buộc nhập",
+          "Phải là số lớn hơn 0",
+          "Không cho phép nhập ký tự chữ",
+          "Nếu nhỏ hơn mức tối thiểu (1.000.000 VND), hiển thị cảnh báo"
+        ],
+        "suggestedError": "Vui lòng nhập số tiền gửi hợp lệ."
+      },
+      {
+        "category": "Kỳ hạn gửi",
+        "requirements": [
+          "Bắt buộc chọn",
+          "Giá trị phải thuộc danh sách kỳ hạn hợp lệ"
+        ],
+        "suggestedError": "Vui lòng chọn kỳ hạn gửi."
+      },
+      {
+        "category": "Lãi suất",
+        "requirements": [
+          "Bắt buộc nhập",
+          "Phải là số lớn hơn hoặc bằng 0",
+          "Không vượt quá mức trần cấu hình nếu có"
+        ],
+        "suggestedError": "Vui lòng nhập lãi suất hợp lệ."
+      }
+    ]
+  },
+  "referenceRates": {
+    "title": "Bảng biểu lãi suất tham chiếu",
+    "subtitle": "Lãi suất tiền gửi thông thường trả lãi sau áp dụng cho khách hàng cá nhân (Đơn vị tính: %/năm)",
+    "columnHeaders": {
+      "term": "Kỳ hạn",
+      "rate": "VND (%/năm)",
+      "action": "Chọn tính"
+    },
+    "searchPlaceholder": "Tìm kiếm kỳ hạn...",
+    "data": [
+      { "id": "demand", "termLabel": "Không kỳ hạn", "rate": 0.1, "months": 0, "defaultDays": 30, "group": "Ngắn hạn" },
+      { "id": "under_1m", "termLabel": "Dưới 1 tháng", "rate": 0.2, "months": 0.5, "defaultDays": 14, "group": "Ngắn hạn" },
+      { "id": "1m_to_2m", "termLabel": "Từ 1 tháng đến dưới 2 tháng", "rate": 2.1, "months": 1, "defaultDays": 30, "group": "Từ 1 - 5 tháng" },
+      { "id": "2m_to_3m", "termLabel": "Từ 2 tháng đến dưới 3 tháng", "rate": 2.1, "months": 2, "defaultDays": 60, "group": "Từ 1 - 5 tháng" },
+      { "id": "3m_to_4m", "termLabel": "Từ 3 tháng đến dưới 4 tháng", "rate": 2.4, "months": 3, "defaultDays": 90, "group": "Từ 1 - 5 tháng" },
+      { "id": "4m_to_5m", "termLabel": "Từ 4 tháng đến dưới 5 tháng", "rate": 2.4, "months": 4, "defaultDays": 120, "group": "Từ 1 - 5 tháng" },
+      { "id": "5m_to_6m", "termLabel": "Từ 5 tháng đến dưới 6 tháng", "rate": 2.4, "months": 5, "defaultDays": 150, "group": "Từ 1 - 5 tháng" },
+      { "id": "6m_to_7m", "termLabel": "Từ 6 tháng đến dưới 7 tháng", "rate": 3.5, "months": 6, "defaultDays": 180, "group": "Từ 6 - 11 tháng" },
+      { "id": "7m_to_8m", "termLabel": "Từ 7 tháng đến dưới 8 tháng", "rate": 3.5, "months": 7, "defaultDays": 210, "group": "Từ 6 - 11 tháng" },
+      { "id": "8m_to_9m", "termLabel": "Từ 8 tháng đến dưới 9 tháng", "rate": 3.5, "months": 8, "defaultDays": 240, "group": "Từ 6 - 11 tháng" },
+      { "id": "9m_to_10m", "termLabel": "Từ 9 tháng đến dưới 10 tháng", "rate": 3.5, "months": 9, "defaultDays": 270, "group": "Từ 6 - 11 tháng" },
+      { "id": "10m_to_11m", "termLabel": "Từ 10 tháng đến dưới 11 tháng", "rate": 3.5, "months": 10, "defaultDays": 300, "group": "Từ 6 - 11 tháng" },
+      { "id": "11m_to_12m", "termLabel": "Từ 11 tháng đến dưới 12 tháng", "rate": 3.5, "months": 11, "defaultDays": 330, "group": "Từ 6 - 11 tháng" },
+      { "id": "12m", "termLabel": "12 tháng", "rate": 5.9, "months": 12, "defaultDays": 365, "group": "Từ 12 - 18 tháng" },
+      { "id": "over_12m_to_13m", "termLabel": "Trên 12 tháng đến 13 tháng", "rate": 5.9, "months": 13, "defaultDays": 395, "group": "Từ 12 - 18 tháng" },
+      { "id": "over_13m_to_18m", "termLabel": "Trên 13 tháng đến dưới 18 tháng", "rate": 5.9, "months": 15, "defaultDays": 455, "group": "Từ 12 - 18 tháng" },
+      { "id": "18m_to_24m", "termLabel": "Từ 18 tháng đến dưới 24 tháng", "rate": 5.9, "months": 18, "defaultDays": 548, "group": "Từ 18 - 36 tháng" },
+      { "id": "24m_to_36m", "termLabel": "Từ 24 tháng đến dưới 36 tháng", "rate": 6.0, "months": 24, "defaultDays": 730, "group": "Từ 18 - 36 tháng" },
+      { "id": "36m", "termLabel": "36 tháng", "rate": 6.0, "months": 36, "defaultDays": 1095, "group": "Từ 18 - 36 tháng" },
+      { "id": "over_36m", "termLabel": "Trên 36 tháng", "rate": 6.0, "months": 48, "defaultDays": 1460, "group": "Dài hạn trên 3 năm" }
+    ]
+  },
+  "footer": {
+    "disclaimer": "Lưu ý: Kết quả tính toán trên mang tính chất tham khảo tại thời điểm tra cứu. Lãi suất thực tế có thể thay đổi tùy theo quy định từng thời kỳ của Ngân hàng và thỏa thuận cụ thể trên sổ tiết kiệm/hợp đồng tiền gửi.",
+    "regulatoryNote": "Căn cứ theo Thông tư số 14/2017/TT-NHNN của Ngân hàng Nhà nước Việt Nam về phương pháp tính lãi trong hoạt động nhận tiền gửi, cấp tín dụng."
+  }
+}

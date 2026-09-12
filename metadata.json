@@ -1,0 +1,6 @@
+{
+  "name": "Công cụ tính lãi suất tiền gửi",
+  "description": "Công cụ tính lãi suất tiền gửi sản phẩm tiền gửi thông thường trả lãi sau kèm biểu lãi suất tham chiếu chuẩn.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
