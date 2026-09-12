@@ -7,6 +7,37 @@ export interface ReferenceRateItem {
   group: string;
 }
 
+export type RepaymentCycle = 'monthly' | 'quarterly' | 'semiAnnual' | 'annual';
+export type RoundingRule = 'dong' | 'thousand';
+
+export interface LoanScheduleRow {
+  period: number;             // 0 for disbursement, 1..N
+  paymentDate: string;        // DD/MM/YYYY
+  remainingPrincipal: number; // Số gốc còn lại
+  principalPaid: number;      // Gốc trả kỳ này
+  interestPaid: number;       // Lãi trả kỳ này
+  totalPaid: number;          // Tổng Gốc + Lãi kỳ này
+}
+
+export interface LoanCalculationResult {
+  loanAmount: number;
+  propertyValue?: number;
+  loanTermMonths: number;
+  annualRate: number;
+  periodRatePercent: number;
+  disbursementDate: string;
+  repaymentCycle: RepaymentCycle;
+  repaymentDay: number;
+  totalPeriods: number;
+  schedule: LoanScheduleRow[];
+  firstPeriodPayment: number;
+  lastPeriodPayment: number;
+  totalPrincipal: number;
+  totalInterest: number;
+  totalRepayment: number;
+  inWords: string;
+}
+
 export interface CalculationInput {
   depositAmount: number | null;
   termId: string;

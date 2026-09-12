@@ -1,11 +1,139 @@
 {
   "media": {
-    "logo": "./assets/logo.svg"
+    "logo": "./assets/vietinbank-logo.png",
+    "fallbackLogo": "./assets/vietinbank-logo.svg"
+  },
+  "brand": {
+    "bankName": "VietinBank",
+    "branchName": "VietinBank Chi Nhánh Bạc Liêu",
+    "slogan": "Nâng giá trị cuộc sống",
+    "address": "01 Hai Bà Trưng, Phường Bạc Liêu, tỉnh Cà Mau",
+    "consultant": {
+      "title": "Chuyên viên tư vấn",
+      "name": "Phạm Huỳnh Anh Thư",
+      "phone": "0911234567",
+      "formattedPhone": "0911.234.567",
+      "branch": "VietinBank Chi Nhánh Bạc Liêu",
+      "zaloUrl": "https://zalo.me/0911234567",
+      "callUrl": "tel:0911234567"
+    },
+    "navigation": [
+      { "id": "loan", "label": "Tính lãi vay", "icon": "Calculator", "badge": "Mới" },
+      { "id": "savings", "label": "Tính lãi tiết kiệm", "icon": "Coins", "badge": null },
+      { "id": "ipay", "label": "Hướng dẫn iPay", "icon": "Smartphone", "badge": null },
+      { "id": "products", "label": "Sản phẩm nổi bật", "icon": "Sparkles", "badge": "Hot" },
+      { "id": "pgd", "label": "Mạng lưới PGD", "icon": "MapPin", "badge": null },
+      { "id": "minigame", "label": "Mini Game Nhận Quà", "icon": "Gift", "badge": "Quà tặng" }
+    ]
   },
   "header": {
-    "badge": "Tiện ích Ngân hàng & Tài chính",
-    "title": "Công cụ tính lãi suất tiền gửi sản phẩm tiền gửi thông thường trả lãi sau",
-    "subtitle": "Hỗ trợ khách hàng tính toán chính xác tiền lãi dự tính và tổng số tiền nhận khi đáo hạn theo biểu lãi suất tham chiếu mới nhất."
+    "badge": "VietinBank Chi Nhánh Bạc Liêu",
+    "title": "Cổng tiện ích tính toán tài chính & lãi suất VietinBank",
+    "subtitle": "Công cụ tính toán lãi suất tiền gửi tiết kiệm và bảng tính lãi suất vay trả nợ dư nợ giảm dần chuẩn mực ngân hàng."
+  },
+  "loanCalculator": {
+    "title": "Bảng Tính Lãi Suất Vay",
+    "subtitle": "Tính toán chi tiết dòng tiền trả nợ theo phương thức Trả gốc đều, lãi tính trên dư nợ giảm dần chuẩn nghiệp vụ VietinBank.",
+    "tabs": [
+      { "id": "reducing", "label": "Bảng tính dư nợ giảm dần" },
+      { "id": "equal", "label": "Bảng số tiền trả hàng tháng cố định" }
+    ],
+    "labels": {
+      "propertyValue": "Giá trị bất động sản / tài sản",
+      "loanAmount": "Số tiền vay",
+      "loanAmountHint": "Nhập số tiền muốn vay hoặc tỷ lệ theo giá trị tài sản",
+      "loanTerm": "Thời gian vay",
+      "loanTermUnit": "Tháng",
+      "interestRate": "Lãi suất",
+      "rateUnit": "%/Năm",
+      "disbursementDate": "Ngày giải ngân",
+      "repaymentCycle": "Chu kỳ trả nợ",
+      "repaymentDay": "Ngày trả nợ định kỳ",
+      "repaymentDayPrefix": "Ngày",
+      "repaymentDaySuffix": "hằng tháng",
+      "roundingRule": "Quy tắc làm tròn",
+      "monthlyPayment": "Số tiền trả hàng tháng:",
+      "from": "từ",
+      "to": "đến",
+      "totalInterest": "Tổng lãi phải trả:",
+      "totalRepayment": "Tổng tiền gốc + lãi:",
+      "firstPeriod": "Kỳ đầu (cao nhất)",
+      "lastPeriod": "Kỳ cuối (thấp nhất)",
+      "viewDetails": "Xem chi tiết",
+      "currencyUnit": "VND"
+    },
+    "cycles": [
+      { "id": "monthly", "label": "Hằng tháng (Lãi suất năm / 12)", "divisor": 12, "cycleMonths": 1 },
+      { "id": "quarterly", "label": "Hằng quý (Lãi suất năm / 4)", "divisor": 4, "cycleMonths": 3 },
+      { "id": "semiAnnual", "label": "6 tháng (Lãi suất năm / 2)", "divisor": 2, "cycleMonths": 6 },
+      { "id": "annual", "label": "Hằng năm (Lãi suất năm)", "divisor": 1, "cycleMonths": 12 }
+    ],
+    "roundingOptions": [
+      { "id": "dong", "label": "Làm tròn đến đơn vị đồng" },
+      { "id": "thousand", "label": "Làm tròn đến 1.000 đồng" }
+    ],
+    "quickLoanAmounts": [
+      { "label": "500.000.000 VND", "value": 500000000 },
+      { "label": "1.000.000.000 VND", "value": 1000000000 },
+      { "label": "2.000.000.000 VND", "value": 2000000000 },
+      { "label": "5.000.000.000 VND", "value": 5000000000 },
+      { "label": "6.666.666.667 VND", "value": 6666666667 }
+    ],
+    "quickTerms": [
+      { "label": "12 tháng (1 năm)", "months": 12 },
+      { "label": "36 tháng (3 năm)", "months": 36 },
+      { "label": "60 tháng (5 năm)", "months": 60 },
+      { "label": "120 tháng (10 năm)", "months": 120 },
+      { "label": "240 tháng (20 năm)", "months": 240 }
+    ],
+    "scheduleModal": {
+      "title": "Bảng tính lịch trả nợ với dư nợ giảm dần",
+      "subtitle": "Kế hoạch thanh toán chi tiết từng kỳ gồm gốc, lãi và dư nợ giảm dần theo thời gian",
+      "columns": {
+        "stt": "STT",
+        "paymentDate": "KỲ TRẢ NỢ",
+        "remainingPrincipal": "SỐ GỐC CÒN LẠI",
+        "principal": "GỐC",
+        "interest": "LÃI",
+        "total": "TỔNG GỐC + LÃI"
+      },
+      "summaryLabel": "TỔNG",
+      "exportExcel": "Xuất Excel / CSV",
+      "print": "In lịch trả nợ",
+      "close": "Đóng"
+    },
+    "principles": {
+      "title": "Nguyên tắc: 1. Trả gốc đều, lãi tính trên dư nợ giảm dần",
+      "subtitle": "Đây là phương thức phổ biến trong ngân hàng.",
+      "calculationSteps": [
+        "Gốc trả mỗi kỳ = Số tiền vay / Tổng số kỳ trả nợ.",
+        "Lãi kỳ hiện tại = Dư nợ đầu kỳ × Lãi suất kỳ.",
+        "Tổng tiền trả kỳ = Gốc kỳ + Lãi kỳ."
+      ],
+      "characteristics": [
+        "Số tiền trả ban đầu cao.",
+        "Số tiền trả giảm dần theo thời gian.",
+        "Tổng lãi phải trả thường thấp hơn so với phương thức trả góp đều."
+      ],
+      "businessRules": [
+        {
+          "title": "2.1. Quy đổi lãi suất",
+          "content": "Người dùng nhập lãi suất theo năm. Hệ thống tự quy đổi theo chu kỳ trả nợ: Hằng tháng (Lãi suất năm / 12); Hằng quý (Lãi suất năm / 4); 6 tháng (Lãi suất năm / 2); Hằng năm (Lãi suất năm). Ví dụ: Lãi suất năm = 12% → Trả nợ hằng tháng → Lãi suất kỳ = 1%/tháng."
+        },
+        {
+          "title": "2.2. Tính dư nợ",
+          "content": "Dư nợ cuối kỳ = Dư nợ đầu kỳ - Gốc đã trả trong kỳ. Dư nợ đầu kỳ sau = Dư nợ cuối kỳ trước."
+        },
+        {
+          "title": "2.3. Làm tròn số",
+          "content": "Hệ thống hỗ trợ quy tắc làm tròn: Làm tròn đến đơn vị đồng hoặc làm tròn đến 1.000 đồng. Sai lệch do làm tròn được điều chỉnh vào kỳ trả nợ cuối cùng."
+        },
+        {
+          "title": "2.4. Ngày trả nợ",
+          "content": "Hệ thống tự động sinh ngày trả nợ dựa trên: Ngày giải ngân, Chu kỳ trả nợ, và Ngày trả nợ định kỳ do người dùng chọn (Ví dụ: Ngày giải ngân 10/01/2026, chu kỳ hằng tháng, ngày trả nợ 25 hằng tháng → Hệ thống sinh lịch: 25/02/2026, 25/03/2026, 25/04/2026...)."
+        }
+      ]
+    }
   },
   "calculator": {
     "depositSectionTitle": "Tiền gửi dự tính",
@@ -27,16 +155,16 @@
       "methodActualDays": "Ngày thực tế / 365 ngày"
     },
     "quickAmounts": [
-      { "label": "+10 triệu", "value": 10000000 },
-      { "label": "+50 triệu", "value": 50000000 },
-      { "label": "+100 triệu", "value": 100000000 },
-      { "label": "+500 triệu", "value": 500000000 },
-      { "label": "+1 tỷ", "value": 1000000000 }
+      { "label": "+10.000.000 VND", "value": 10000000 },
+      { "label": "+50.000.000 VND", "value": 50000000 },
+      { "label": "+100.000.000 VND", "value": 100000000 },
+      { "label": "+500.000.000 VND", "value": 500000000 },
+      { "label": "+1.000.000.000 VND", "value": 1000000000 }
     ],
     "quickPresets": [
-      { "label": "Gói tiết kiệm 50 triệu - 6 tháng", "amount": 50000000, "termId": "6m_to_7m" },
-      { "label": "Gói tích lũy 100 triệu - 12 tháng", "amount": 100000000, "termId": "12m" },
-      { "label": "Gói đầu tư 500 triệu - 24 tháng", "amount": 500000000, "termId": "24m_to_36m" }
+      { "label": "Gói 50.000.000 VND - 6 tháng", "amount": 50000000, "termId": "6m_to_7m" },
+      { "label": "Gói 100.000.000 VND - 12 tháng", "amount": 100000000, "termId": "12m" },
+      { "label": "Gói 500.000.000 VND - 24 tháng", "amount": 500000000, "termId": "24m_to_36m" }
     ],
     "validation": {
       "amountRequired": "Vui lòng nhập số tiền gửi hợp lệ.",
@@ -69,13 +197,13 @@
     }
   },
   "rules": {
-    "title": "Nguyên tắc nghiệp vụ",
+    "title": "Nguyên tắc nghiệp vụ tiền gửi",
     "subtitle": "Quy định bắt buộc đối với công cụ tính lãi suất tiền gửi",
     "items": [
       {
         "category": "Số tiền gửi",
         "requirements": [
-          "Bắt buộc nhập",
+          "Bắt buộc nhập dạng số",
           "Phải là số lớn hơn 0",
           "Không cho phép nhập ký tự chữ",
           "Nếu nhỏ hơn mức tối thiểu (1.000.000 VND), hiển thị cảnh báo"
@@ -95,14 +223,14 @@
         "requirements": [
           "Bắt buộc nhập",
           "Phải là số lớn hơn hoặc bằng 0",
-          "Không vượt quá mức trần cấu hình nếu có"
+          "Không vượt quá mức trần quy định"
         ],
         "suggestedError": "Vui lòng nhập lãi suất hợp lệ."
       }
     ]
   },
   "referenceRates": {
-    "title": "Bảng biểu lãi suất tham chiếu",
+    "title": "Bảng biểu lãi suất tham chiếu VietinBank",
     "subtitle": "Lãi suất tiền gửi thông thường trả lãi sau áp dụng cho khách hàng cá nhân (Đơn vị tính: %/năm)",
     "columnHeaders": {
       "term": "Kỳ hạn",
@@ -133,8 +261,95 @@
       { "id": "over_36m", "termLabel": "Trên 36 tháng", "rate": 6.0, "months": 48, "defaultDays": 1460, "group": "Dài hạn trên 3 năm" }
     ]
   },
+  "modals": {
+    "ipay": {
+      "title": "Ngân hàng số VietinBank iPay Mobile",
+      "subtitle": "Trải nghiệm dịch vụ tài chính thông minh trong tầm tay",
+      "features": [
+        "Miễn 100% phí chuyển tiền trong và ngoài hệ thống 24/7",
+        "Mở tài khoản thanh toán số đẹp eKYC chỉ trong 1 phút",
+        "Gửi tiết kiệm online cộng thêm lãi suất lên tới 0.3%/năm so với tại quầy",
+        "Xác thực sinh trắc học FacePay an toàn tuyệt đối theo Quyết định 2345/QĐ-NHNN",
+        "Thanh toán hóa đơn điện thoại, điện nước, QR Pay tại hơn 500.000 điểm chấp nhận",
+        "Đặt vé máy bay, vé tàu, khách sạn với hàng ngàn voucher giảm giá mỗi tuần"
+      ],
+      "hotline": "1900 558 868",
+      "qrNote": "Quét mã để tải VietinBank iPay trên App Store hoặc Google Play"
+    },
+    "products": {
+      "title": "Sản phẩm & Dịch vụ Nổi bật VietinBank Bạc Liêu",
+      "subtitle": "Các giải pháp tài chính tối ưu dành riêng cho khách hàng cá nhân & doanh nghiệp",
+      "list": [
+        {
+          "tag": "Vay thế chấp",
+          "title": "Gói vay mua nhà đất 'Sống trọn đam mê'",
+          "rate": "Từ 5.8%/năm",
+          "desc": "Thời gian vay linh hoạt lên tới 35 năm, tỷ lệ tài trợ đến 85% giá trị tài sản bảo đảm, thủ tục thẩm định tinh gọn."
+        },
+        {
+          "tag": "Sản xuất kinh doanh",
+          "title": "Vay vốn kinh doanh VietinBank SME",
+          "rate": "Từ 6.2%/năm",
+          "desc": "Hạn mức cấp tín dụng lớn, tài trợ vốn lưu động linh hoạt cho hộ kinh doanh & tiểu thương tại tỉnh Bạc Liêu."
+        },
+        {
+          "tag": "Tiết kiệm",
+          "title": "Tiết kiệm tích lũy trả lãi sau",
+          "rate": "Lên tới 6.0%/năm",
+          "desc": "Kỳ hạn đa dạng từ 1 đến 36 tháng, bảo toàn gốc & lãi tối đa, hỗ trợ cầm cố sổ tiết kiệm khi có nhu cầu vốn đột xuất."
+        },
+        {
+          "tag": "Thẻ",
+          "title": "Thẻ tín dụng quốc tế VietinBank Eliv3",
+          "rate": "Hoàn tiền 10%",
+          "desc": "Miễn phí thường niên trọn đời, đặc quyền phòng chờ sân bay, hoàn tiền giải trí và mua sắm không giới hạn."
+        }
+      ]
+    },
+    "pgd": {
+      "title": "Mạng lưới Chi nhánh & PGD VietinBank tại Bạc Liêu",
+      "subtitle": "Hệ thống điểm giao dịch phục vụ khách hàng trên địa bàn tỉnh Bạc Liêu",
+      "headquarters": {
+        "name": "VietinBank Chi Nhánh Bạc Liêu (Hội sở chính)",
+        "address": "01 Hai Bà Trưng, Phường Bạc Liêu, tỉnh Cà Mau",
+        "phone": "0291 3822 555",
+        "hours": "Thứ 2 - Thứ 6: 07:30 - 16:30"
+      },
+      "subBranches": [
+        {
+          "name": "Phòng giao dịch Giá Rai",
+          "address": "247 Quốc lộ 1A, Khóm 2, Phường 1, Thị xã Giá Rai, Bạc Liêu",
+          "phone": "0291 3848 111"
+        },
+        {
+          "name": "Phòng giao dịch Phước Long",
+          "address": "Ấp Long Hòa, Thị trấn Phước Long, Huyện Phước Long, Bạc Liêu",
+          "phone": "0291 3864 222"
+        },
+        {
+          "name": "Phòng giao dịch Hộ Phòng",
+          "address": "Số 18 Quốc lộ 1A, Phường Hộ Phòng, Thị xã Giá Rai, Bạc Liêu",
+          "phone": "0291 3850 333"
+        }
+      ]
+    },
+    "minigame": {
+      "title": "Vòng Quay May Mắn VietinBank Bạc Liêu",
+      "subtitle": "Quay số nhận quà tri ân khách hàng trải nghiệm tiện ích tính lãi",
+      "prizes": [
+        { "id": 1, "name": "Áo mưa cao cấp VietinBank", "color": "#005596" },
+        { "id": 2, "name": "Mũ bảo hiểm đạt chuẩn", "color": "#ED1B2F" },
+        { "id": 3, "name": "Bình giữ nhiệt Lock&Lock", "color": "#003B70" },
+        { "id": 4, "name": "Voucher giảm 0.2% lãi suất vay", "color": "#10B981" },
+        { "id": 5, "name": "Ô dù cầm tay gấp gọn", "color": "#F59E0B" },
+        { "id": 6, "name": "Sổ tay da cao cấp VietinBank", "color": "#6366F1" }
+      ]
+    }
+  },
   "footer": {
-    "disclaimer": "Lưu ý: Kết quả tính toán trên mang tính chất tham khảo tại thời điểm tra cứu. Lãi suất thực tế có thể thay đổi tùy theo quy định từng thời kỳ của Ngân hàng và thỏa thuận cụ thể trên sổ tiết kiệm/hợp đồng tiền gửi.",
+    "bankFullName": "Ngân hàng Thương mại Cổ phần Công Thương Việt Nam",
+    "branchInfo": "VietinBank - Chi Nhánh Bạc Liêu",
+    "disclaimer": "Lưu ý: Kết quả tính toán trên mang tính chất tham khảo tại thời điểm tra cứu. Lãi suất và lịch trả nợ thực tế phụ thuộc vào phê duyệt tín dụng của VietinBank tại từng thời kỳ và điều khoản hợp đồng tín dụng ký kết.",
     "regulatoryNote": "Căn cứ theo Thông tư số 14/2017/TT-NHNN của Ngân hàng Nhà nước Việt Nam về phương pháp tính lãi trong hoạt động nhận tiền gửi, cấp tín dụng."
   }
 }

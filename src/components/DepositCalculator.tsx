@@ -24,23 +24,30 @@ import {
   Percent,
   Coins,
   ChevronDown,
+  Sparkles,
+  RotateCcw,
 } from 'lucide-react';
 
 interface DepositCalculatorProps {
   selectedTermId: string;
   onSelectTermId: (termId: string) => void;
+  depositAmount?: number;
+  onDepositAmountChange?: (amount: number) => void;
 }
 
 export const DepositCalculator: React.FC<DepositCalculatorProps> = ({
   selectedTermId,
   onSelectTermId,
+  depositAmount = 100000000,
+  onDepositAmountChange,
 }) => {
   const { calculator, referenceRates } = contentData;
   const containerRef = useRef<HTMLDivElement>(null);
   const resultCardRef = useRef<HTMLDivElement>(null);
+  const amountInputRef = useRef<HTMLInputElement>(null);
 
   // Form states
-  const [depositAmountRaw, setDepositAmountRaw] = useState<string>('100000000'); // Default 100M VND
+  const [depositAmountRaw, setDepositAmountRaw] = useState<string>(() => depositAmount.toString());
   const [customRateStr, setCustomRateStr] = useState<string>('5.9');
   const [startDate, setStartDate] = useState<string>(() => {
     const today = new Date();
@@ -53,6 +60,13 @@ export const DepositCalculator: React.FC<DepositCalculatorProps> = ({
     term: true,
     rate: true,
   });
+
+  // Sync if depositAmount prop changes externally
+  useEffect(() => {
+    if (depositAmount !== undefined && depositAmount !== parseFormattedNumber(depositAmountRaw)) {
+      setDepositAmountRaw(depositAmount > 0 ? depositAmount.toString() : '');
+    }
+  }, [depositAmount]);
 
   // Find currently selected term object
   const currentTermItem = useMemo(() => {
@@ -121,11 +135,37 @@ export const DepositCalculator: React.FC<DepositCalculatorProps> = ({
 
   // Input change handlers
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const rawVal = e.target.value;
+    const inputEl = e.target;
+    const cursorPosition = inputEl.selectionStart || 0;
+    const rawVal = inputEl.value;
     // Strictly prevent non-numeric characters (allow only digits)
     const digitsOnly = rawVal.replace(/[^\d]/g, '');
+    const num = digitsOnly ? parseInt(digitsOnly, 10) : 0;
+    const newFormatted = digitsOnly ? formatVND(num) : '';
+
     setDepositAmountRaw(digitsOnly);
     setTouched((prev) => ({ ...prev, amount: true }));
+    onDepositAmountChange?.(num);
+
+    // Keep natural cursor position after dot formatting
+    requestAnimationFrame(() => {
+      if (amountInputRef.current) {
+        const digitsBeforeCursor = rawVal.slice(0, cursorPosition).replace(/[^\d]/g, '').length;
+        let newPos = 0;
+        let count = 0;
+        for (let i = 0; i < newFormatted.length; i++) {
+          if (/[\d]/.test(newFormatted[i])) {
+            count++;
+          }
+          if (count === digitsBeforeCursor) {
+            newPos = i + 1;
+            break;
+          }
+        }
+        if (digitsBeforeCursor === 0) newPos = 0;
+        amountInputRef.current.setSelectionRange(newPos, newPos);
+      }
+    });
   };
 
   const handleQuickAddAmount = (amountToAdd: number) => {
@@ -133,6 +173,7 @@ export const DepositCalculator: React.FC<DepositCalculatorProps> = ({
     const newVal = current + amountToAdd;
     setDepositAmountRaw(newVal.toString());
     setTouched((prev) => ({ ...prev, amount: true }));
+    onDepositAmountChange?.(newVal);
   };
 
   const handleRateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -189,6 +230,7 @@ export const DepositCalculator: React.FC<DepositCalculatorProps> = ({
             onClick={() => {
               setDepositAmountRaw(preset.amount.toString());
               onSelectTermId(preset.termId);
+              onDepositAmountChange?.(preset.amount);
             }}
             className="px-3 py-1 rounded-full bg-white hover:bg-sky-50 text-slate-700 hover:text-sky-700 border border-slate-200/90 hover:border-sky-300 font-medium transition-all whitespace-nowrap cursor-pointer shadow-2xs"
           >
@@ -231,6 +273,7 @@ export const DepositCalculator: React.FC<DepositCalculatorProps> = ({
 
             <div className="relative">
               <input
+                ref={amountInputRef}
                 id="deposit-amount"
                 type="text"
                 inputMode="numeric"
@@ -288,8 +331,9 @@ export const DepositCalculator: React.FC<DepositCalculatorProps> = ({
                 <span className="text-rose-500 font-bold">*</span>
               </label>
               {currentTermItem && (
-                <span className="text-xs font-medium text-slate-500">
-                  Chuẩn: {formatRate(currentTermItem.rate)}%/năm
+                <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60">
+                  <Sparkles className="w-3 h-3 text-emerald-600" />
+                  <span>Lãi tự động: {formatRate(currentTermItem.rate)}%/năm</span>
                 </span>
               )}
             </div>
@@ -310,11 +354,44 @@ export const DepositCalculator: React.FC<DepositCalculatorProps> = ({
                 </option>
                 {referenceRates.data.map((item) => (
                   <option key={item.id} value={item.id}>
-                    {item.termLabel} ({formatRate(item.rate)}%/năm)
+                    {item.termLabel} — {formatRate(item.rate)}%/năm (Tự động)
                   </option>
                 ))}
               </select>
               <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+
+            {/* Quick popular term buttons */}
+            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+              <span className="text-[11px] text-slate-400 font-medium mr-1">Chọn nhanh:</span>
+              {[
+                { label: '1 tháng (2,1%)', id: '1m_to_2m' },
+                { label: '3 tháng (2,4%)', id: '3m_to_4m' },
+                { label: '6 tháng (3,5%)', id: '6m_to_7m' },
+                { label: '9 tháng (3,5%)', id: '9m_to_10m' },
+                { label: '12 tháng (5,9%)', id: '12m' },
+                { label: '24 tháng (6,0%)', id: '24m_to_36m' },
+                { label: '36 tháng (6,0%)', id: '36m' },
+              ].map((q) => {
+                const isSelected = selectedTermId === q.id;
+                return (
+                  <button
+                    key={q.id}
+                    type="button"
+                    onClick={() => {
+                      onSelectTermId(q.id);
+                      setTouched((prev) => ({ ...prev, term: true }));
+                    }}
+                    className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-all cursor-pointer ${
+                      isSelected
+                        ? 'bg-[#005596] text-white shadow-2xs font-semibold'
+                        : 'bg-slate-100 hover:bg-sky-100 text-slate-700 hover:text-sky-800'
+                    }`}
+                  >
+                    {q.label}
+                  </button>
+                );
+              })}
             </div>
 
             {touched.term && errors.term && (
@@ -325,20 +402,24 @@ export const DepositCalculator: React.FC<DepositCalculatorProps> = ({
             )}
           </div>
 
-          {/* 3. Field: Lãi suất (%/năm) */}
+          {/* 3. Field: Lãi suất (%/năm) - Tự động áp dụng từ biểu lãi suất */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label htmlFor="interest-rate" className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
                 <span>{calculator.labels.interestRate}</span>
                 <span className="text-rose-500 font-bold">*</span>
+                <span className="text-[11px] text-emerald-600 font-normal bg-emerald-50 px-1.5 py-0.5 rounded">
+                  Tự động theo kỳ hạn
+                </span>
               </label>
-              {currentTermItem && (
+              {currentTermItem && customRateStr !== currentTermItem.rate.toString() && (
                 <button
                   type="button"
                   onClick={() => setCustomRateStr(currentTermItem.rate.toString())}
-                  className="text-xs text-sky-600 hover:text-sky-800 font-medium underline underline-offset-2"
+                  className="inline-flex items-center gap-1 text-xs text-sky-600 hover:text-sky-800 font-medium underline underline-offset-2 cursor-pointer"
                 >
-                  Dùng lãi tham chiếu ({formatRate(currentTermItem.rate)}%)
+                  <RotateCcw className="w-3 h-3" />
+                  <span>Khôi phục lãi chuẩn ({formatRate(currentTermItem.rate)}%)</span>
                 </button>
               )}
             </div>
@@ -361,6 +442,15 @@ export const DepositCalculator: React.FC<DepositCalculatorProps> = ({
                   {calculator.labels.rateUnit}
                 </span>
               </div>
+            </div>
+
+            <div className="flex items-center justify-between text-[11px] text-slate-500">
+              <span>Hệ thống tự động tra cứu lãi suất chuẩn từ ngân hàng theo kỳ hạn đã chọn.</span>
+              {currentTermItem && (
+                <span className="font-semibold text-emerald-700">
+                  {currentTermItem.termLabel}: {formatRate(currentTermItem.rate)}%/năm
+                </span>
+              )}
             </div>
 
             {touched.rate && errors.interestRate && (
@@ -512,8 +602,8 @@ export const DepositCalculator: React.FC<DepositCalculatorProps> = ({
                 {/* Ratio bar */}
                 <div className="pt-2">
                   <div className="flex justify-between text-[11px] mb-1 font-medium">
-                    <span className="text-slate-600">Gốc: {formatVND(result.depositAmount)}</span>
-                    <span className="text-emerald-700 font-bold">Lãi: {formatVND(result.interestEarned)}</span>
+                    <span className="text-slate-600">Gốc: {formatVND(result.depositAmount)} VND</span>
+                    <span className="text-emerald-700 font-bold">Lãi: {formatVND(result.interestEarned)} VND</span>
                   </div>
                   <div className="h-2 w-full bg-slate-200 rounded-full overflow-hidden flex">
                     <div

@@ -2,9 +2,17 @@
  * Currency & Number formatters for Vietnamese banking calculator
  */
 
-export function formatVND(value: number | null | undefined): string {
-  if (value === null || value === undefined || isNaN(value)) return '0';
-  return new Intl.NumberFormat('vi-VN').format(Math.round(value));
+export function formatVND(value: number | null | undefined, includeUnit: boolean = false): string {
+  if (value === null || value === undefined || isNaN(value)) {
+    return includeUnit ? '0 VND' : '0';
+  }
+  const rounded = Math.round(value);
+  const isNegative = rounded < 0;
+  const absStr = Math.abs(rounded).toString();
+  // Standard Vietnamese financial format: dot (.) as thousands separator
+  const formatted = absStr.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  const result = isNegative ? `-${formatted}` : formatted;
+  return includeUnit ? `${result} VND` : result;
 }
 
 export function parseFormattedNumber(str: string): number {

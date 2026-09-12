@@ -2,34 +2,46 @@ import { useState } from 'react';
 import contentData from './data/contentData.json';
 import { Header } from './components/Header';
 import { DepositCalculator } from './components/DepositCalculator';
-import { ReferenceRateTable } from './components/ReferenceRateTable';
+import { LoanCalculator } from './components/LoanCalculator';
 import { BusinessRulesCard } from './components/BusinessRulesCard';
 import { TermComparison } from './components/TermComparison';
+import { BrandModals } from './components/BrandModals';
 import { Footer } from './components/Footer';
 import { ReferenceRateItem } from './types';
 import {
   Calculator,
-  TableProperties,
   BookOpen,
   BarChart3,
   HelpCircle,
+  Coins,
+  ShieldCheck,
+  TrendingDown,
+  Building2,
+  Sparkles,
+  PhoneCall,
 } from 'lucide-react';
 
 export default function App() {
+  // Current primary module: 'loan' (Bảng tính lãi vay) vs 'savings' (Tiết kiệm trả sau)
+  const [currentModule, setCurrentModule] = useState<'loan' | 'savings'>('loan');
+
+  // Modal state for brand navigation items
+  const [activeModal, setActiveModal] = useState<'ipay' | 'products' | 'pgd' | 'minigame' | null>(null);
+
+  // Savings specific state
   const [selectedTermId, setSelectedTermId] = useState<string>('12m');
-  const [activeView, setActiveView] = useState<'all' | 'table' | 'rules' | 'compare'>('all');
+  const [activeSavingsView, setActiveSavingsView] = useState<'all' | 'compare' | 'rules'>('all');
   const [calculatorKey, setCalculatorKey] = useState<number>(1);
   const [currentDepositAmount, setCurrentDepositAmount] = useState<number>(100000000);
 
-  const handleReset = () => {
+  const handleResetSavings = () => {
     setSelectedTermId('12m');
     setCurrentDepositAmount(100000000);
     setCalculatorKey((k) => k + 1);
   };
 
-  const handleSelectTermFromTable = (item: ReferenceRateItem) => {
+  const handleSelectBenchmarkTerm = (item: ReferenceRateItem) => {
     setSelectedTermId(item.id);
-    // Scroll smoothly to calculator
     const calcElement = document.getElementById('calculator-section');
     if (calcElement) {
       calcElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -38,141 +50,202 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 font-sans text-slate-800">
-      {/* Top Header */}
-      <Header onReset={handleReset} />
+      {/* Top Header with VietinBank branding, consultant contact & navigation */}
+      <Header
+        currentModule={currentModule}
+        onSelectModule={(mod) => setCurrentModule(mod)}
+        onOpenModal={(modal) => setActiveModal(modal)}
+        onReset={handleResetSavings}
+      />
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-8">
-        {/* Intro banner */}
-        <div className="bg-gradient-to-r from-sky-900 via-blue-900 to-indigo-950 rounded-2xl p-6 sm:p-8 text-white shadow-md relative overflow-hidden">
+        {/* Module Switcher & Hero Banner */}
+        <div className="bg-gradient-to-r from-[#002D54] via-[#005596] to-[#003B70] rounded-2xl p-6 sm:p-8 text-white shadow-md relative overflow-hidden">
           <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-gradient-to-l from-sky-400/10 to-transparent pointer-events-none" />
+
           <div className="relative z-10 max-w-3xl">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-sky-500/20 text-sky-200 border border-sky-400/30 mb-3">
-              <Calculator className="w-3.5 h-3.5" />
-              <span>Tiền gửi tiết kiệm trả sau</span>
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-rose-600 text-white shadow-xs">
+                VIETINBANK CHI NHÁNH BẠC LIÊU
+              </span>
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-white/10 text-sky-100 border border-white/20">
+                {currentModule === 'loan' ? (
+                  <>
+                    <Calculator className="w-3.5 h-3.5 text-amber-300" />
+                    <span>Tiện ích tính lãi vay dư nợ giảm dần</span>
+                  </>
+                ) : (
+                  <>
+                    <Coins className="w-3.5 h-3.5 text-emerald-300" />
+                    <span>Tiện ích tính lãi tiết kiệm trả sau</span>
+                  </>
+                )}
+              </span>
             </div>
+
             <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight text-white leading-tight">
-              {contentData.header.title}
+              {currentModule === 'loan'
+                ? 'Bảng Tính Lãi Suất Vay Trả Góp Dư Nợ Giảm Dần'
+                : contentData.header.title}
             </h2>
+
             <p className="mt-2.5 text-sm sm:text-base text-sky-100/90 leading-relaxed max-w-2xl">
-              {contentData.header.subtitle}
+              {currentModule === 'loan'
+                ? contentData.loanCalculator.subtitle
+                : contentData.header.subtitle}
             </p>
 
-            {/* Quick stats / Highlights */}
-            <div className="mt-6 pt-5 border-t border-sky-800/80 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
-              <div>
-                <span className="text-sky-300 block">Lãi suất cao nhất:</span>
-                <span className="text-base sm:text-lg font-bold text-white font-mono">6,0%/năm</span>
+            {/* Quick module stats */}
+            {currentModule === 'loan' ? (
+              <div className="mt-6 pt-5 border-t border-sky-800/80 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+                <div>
+                  <span className="text-sky-300 block">Lãi suất ưu đãi từ:</span>
+                  <span className="text-base sm:text-lg font-bold text-amber-300 font-mono">
+                    5,8%/năm
+                  </span>
+                </div>
+                <div>
+                  <span className="text-sky-300 block">Thời gian vay tối đa:</span>
+                  <span className="text-base sm:text-lg font-bold text-white font-mono">
+                    35 năm (420T)
+                  </span>
+                </div>
+                <div>
+                  <span className="text-sky-300 block">Phương thức tính lãi:</span>
+                  <span className="text-base sm:text-lg font-bold text-white">
+                    Dư nợ giảm dần
+                  </span>
+                </div>
+                <div>
+                  <span className="text-sky-300 block">Tỷ lệ vay tối đa:</span>
+                  <span className="text-base sm:text-lg font-bold text-emerald-300 font-mono">
+                    Đến 85% tài sản
+                  </span>
+                </div>
               </div>
-              <div>
-                <span className="text-sky-300 block">Kỳ hạn phổ biến (12T):</span>
-                <span className="text-base sm:text-lg font-bold text-amber-300 font-mono">5,9%/năm</span>
+            ) : (
+              <div className="mt-6 pt-5 border-t border-sky-800/80 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+                <div>
+                  <span className="text-sky-300 block">Lãi suất cao nhất:</span>
+                  <span className="text-base sm:text-lg font-bold text-white font-mono">
+                    6,0%/năm
+                  </span>
+                </div>
+                <div>
+                  <span className="text-sky-300 block">Kỳ hạn phổ biến (12T):</span>
+                  <span className="text-base sm:text-lg font-bold text-amber-300 font-mono">
+                    5,9%/năm
+                  </span>
+                </div>
+                <div>
+                  <span className="text-sky-300 block">Hình thức trả lãi:</span>
+                  <span className="text-base sm:text-lg font-bold text-white">
+                    Cuối kỳ (Trả sau)
+                  </span>
+                </div>
+                <div>
+                  <span className="text-sky-300 block">Tiền gửi tối thiểu:</span>
+                  <span className="text-base sm:text-lg font-bold text-white font-mono">
+                    1.000.000 VND
+                  </span>
+                </div>
               </div>
-              <div>
-                <span className="text-sky-300 block">Hình thức trả lãi:</span>
-                <span className="text-base sm:text-lg font-bold text-white">Cuối kỳ (Trả sau)</span>
+            )}
+          </div>
+        </div>
+
+        {/* CONDITIONAL RENDER BY MODULE */}
+        {currentModule === 'loan' ? (
+          /* MODULE 1: BẢNG TÍNH LÃI SUẤT VAY (THEO CHUẨN PDF) */
+          <div id="loan-calculator-section" className="space-y-6 animate-fadeIn">
+            <LoanCalculator />
+          </div>
+        ) : (
+          /* MODULE 2: CÔNG CỤ TÍNH LÃI SUẤT TIỀN GỬI TIẾT KIỆM */
+          <div id="savings-calculator-section" className="space-y-8 animate-fadeIn">
+            {/* Calculator section */}
+            <div id="calculator-section" className="scroll-mt-20">
+              <DepositCalculator
+                key={calculatorKey}
+                selectedTermId={selectedTermId}
+                onSelectTermId={(termId) => setSelectedTermId(termId)}
+                depositAmount={currentDepositAmount}
+                onDepositAmountChange={(amount) => setCurrentDepositAmount(amount)}
+              />
+            </div>
+
+            {/* View Switcher / Quick Navigation for Savings */}
+            <div className="flex items-center justify-between flex-wrap gap-3 pb-2 border-b border-slate-200">
+              <div className="flex items-center gap-1.5 overflow-x-auto text-xs sm:text-sm">
+                <button
+                  type="button"
+                  onClick={() => setActiveSavingsView('all')}
+                  className={`px-3.5 py-1.5 rounded-lg font-semibold transition-all cursor-pointer ${
+                    activeSavingsView === 'all'
+                      ? 'bg-[#005596] text-white shadow-xs'
+                      : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                  }`}
+                >
+                  Tất cả tiện ích
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveSavingsView('compare')}
+                  className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg font-semibold transition-all cursor-pointer ${
+                    activeSavingsView === 'compare'
+                      ? 'bg-[#005596] text-white shadow-xs'
+                      : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                  }`}
+                >
+                  <BarChart3 className="w-3.5 h-3.5" />
+                  <span>So sánh các kỳ hạn</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveSavingsView('rules')}
+                  className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg font-semibold transition-all cursor-pointer ${
+                    activeSavingsView === 'rules'
+                      ? 'bg-[#005596] text-white shadow-xs'
+                      : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                  }`}
+                >
+                  <BookOpen className="w-3.5 h-3.5" />
+                  <span>Nguyên tắc nghiệp vụ tiền gửi</span>
+                </button>
               </div>
-              <div>
-                <span className="text-sky-300 block">Tiền gửi tối thiểu:</span>
-                <span className="text-base sm:text-lg font-bold text-white font-mono">1.000.000 VND</span>
+
+              <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Lãi suất tự động áp dụng chuẩn theo kỳ hạn</span>
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Section anchor for smooth scrolling */}
-        <div id="calculator-section" className="scroll-mt-20">
-          <DepositCalculator
-            key={calculatorKey}
-            selectedTermId={selectedTermId}
-            onSelectTermId={(termId) => setSelectedTermId(termId)}
-          />
-        </div>
+            {/* Savings sub-views (Bảng biểu lãi suất được tích hợp tự động vào công cụ tính toán) */}
+            {(activeSavingsView === 'all' || activeSavingsView === 'compare') && (
+              <TermComparison
+                amount={currentDepositAmount}
+                selectedTermId={selectedTermId}
+                onSelectTerm={handleSelectBenchmarkTerm}
+              />
+            )}
 
-        {/* View Switcher / Quick Navigation Navigation */}
-        <div className="flex items-center justify-between flex-wrap gap-3 pb-2 border-b border-slate-200">
-          <div className="flex items-center gap-1.5 overflow-x-auto text-xs sm:text-sm">
-            <button
-              type="button"
-              onClick={() => setActiveView('all')}
-              className={`px-3.5 py-1.5 rounded-lg font-semibold transition-all cursor-pointer ${
-                activeView === 'all'
-                  ? 'bg-sky-600 text-white shadow-xs'
-                  : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-              }`}
-            >
-              Tất cả thông tin
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveView('table')}
-              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg font-semibold transition-all cursor-pointer ${
-                activeView === 'table'
-                  ? 'bg-sky-600 text-white shadow-xs'
-                  : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-              }`}
-            >
-              <TableProperties className="w-3.5 h-3.5" />
-              <span>Biểu lãi suất (Trang 2)</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveView('rules')}
-              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg font-semibold transition-all cursor-pointer ${
-                activeView === 'rules'
-                  ? 'bg-sky-600 text-white shadow-xs'
-                  : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-              }`}
-            >
-              <BookOpen className="w-3.5 h-3.5" />
-              <span>Nguyên tắc nghiệp vụ (Trang 1)</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveView('compare')}
-              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg font-semibold transition-all cursor-pointer ${
-                activeView === 'compare'
-                  ? 'bg-sky-600 text-white shadow-xs'
-                  : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-              }`}
-            >
-              <BarChart3 className="w-3.5 h-3.5" />
-              <span>So sánh các kỳ hạn</span>
-            </button>
-          </div>
-
-          <div className="flex items-center gap-1.5 text-xs text-slate-500">
-            <HelpCircle className="w-3.5 h-3.5 text-slate-400" />
-            <span>Nhấp vào kỳ hạn để áp dụng tự động</span>
-          </div>
-        </div>
-
-        {/* View modules */}
-        {(activeView === 'all' || activeView === 'table') && (
-          <div id="reference-rate-table-section">
-            <ReferenceRateTable
-              selectedTermId={selectedTermId}
-              onSelectTerm={handleSelectTermFromTable}
-            />
-          </div>
-        )}
-
-        {(activeView === 'all' || activeView === 'compare') && (
-          <TermComparison
-            amount={currentDepositAmount}
-            selectedTermId={selectedTermId}
-            onSelectTerm={handleSelectTermFromTable}
-          />
-        )}
-
-        {(activeView === 'all' || activeView === 'rules') && (
-          <div id="business-rules-section">
-            <BusinessRulesCard />
+            {(activeSavingsView === 'all' || activeSavingsView === 'rules') && (
+              <div id="business-rules-section">
+                <BusinessRulesCard />
+              </div>
+            )}
           </div>
         )}
       </main>
 
-      {/* Footer */}
+      {/* Brand Modals (iPay, Products, PGD, MiniGame) */}
+      <BrandModals
+        activeModal={activeModal}
+        onClose={() => setActiveModal(null)}
+      />
+
+      {/* Footer with VietinBank Chi Nhánh Bạc Liêu info */}
       <Footer />
     </div>
   );

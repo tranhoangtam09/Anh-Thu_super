@@ -59,7 +59,7 @@ export const TermComparison: React.FC<TermComparisonProps> = ({
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        {comparisons.map(({ term, interest }) => {
+        {comparisons.map(({ term, interest, total }) => {
           const isSelected = selectedTermId === term.id;
           const ratioPercent = Math.round((interest / maxInterest) * 100);
 
@@ -101,7 +101,12 @@ export const TermComparison: React.FC<TermComparisonProps> = ({
                 />
               </div>
 
-              <div className="mt-2 flex items-center justify-end text-[11px] font-medium text-sky-600 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="mt-2.5 flex items-center justify-between text-[11px] text-slate-500 border-t border-slate-100 pt-2">
+                <span>Tổng nhận:</span>
+                <span className="font-bold text-slate-800 font-mono">{formatVND(total)} VND</span>
+              </div>
+
+              <div className="mt-1.5 flex items-center justify-end text-[11px] font-medium text-sky-600 opacity-0 group-hover:opacity-100 transition-opacity">
                 <span>Chọn kỳ hạn này</span>
                 <ArrowUpRight className="w-3 h-3 ml-0.5" />
               </div>
