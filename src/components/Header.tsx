@@ -13,11 +13,12 @@ import {
   Gift,
   Building2,
   RefreshCw,
+  ArrowLeftRight,
 } from 'lucide-react';
 
 interface HeaderProps {
-  currentModule: 'savings' | 'loan';
-  onSelectModule: (module: 'savings' | 'loan') => void;
+  currentModule: 'savings' | 'loan' | 'forex';
+  onSelectModule: (module: 'savings' | 'loan' | 'forex') => void;
   onOpenModal: (modal: 'ipay' | 'products' | 'pgd' | 'minigame') => void;
   onReset?: () => void;
 }
@@ -148,6 +149,25 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <Coins className="w-3.5 h-3.5" />
             <span>Tính lãi tiết kiệm</span>
+          </button>
+
+          {/* Tab 3: Mua bán ngoại tệ */}
+          <button
+            type="button"
+            onClick={() => onSelectModule('forex')}
+            className={`px-3.5 py-2 rounded-xl font-bold flex items-center gap-1.5 whitespace-nowrap transition-all cursor-pointer ${
+              currentModule === 'forex'
+                ? 'bg-[#005596] text-white shadow-xs shadow-[#005596]/30'
+                : 'text-slate-600 hover:text-[#005596] hover:bg-sky-50/60'
+            }`}
+          >
+            <ArrowLeftRight className="w-3.5 h-3.5" />
+            <span>Mua bán ngoại tệ</span>
+            <span className={`text-[10px] px-1.5 py-0.2 rounded font-semibold ${
+              currentModule === 'forex' ? 'bg-rose-600 text-white' : 'bg-rose-100 text-rose-700'
+            }`}>
+              Tỷ giá
+            </span>
           </button>
 
           <span className="text-slate-200 px-1">|</span>

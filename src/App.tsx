@@ -3,6 +3,7 @@ import contentData from './data/contentData.json';
 import { Header } from './components/Header';
 import { DepositCalculator } from './components/DepositCalculator';
 import { LoanCalculator } from './components/LoanCalculator';
+import { ForexTrading } from './components/ForexTrading';
 import { BusinessRulesCard } from './components/BusinessRulesCard';
 import { TermComparison } from './components/TermComparison';
 import { BrandModals } from './components/BrandModals';
@@ -19,11 +20,12 @@ import {
   Building2,
   Sparkles,
   PhoneCall,
+  ArrowLeftRight,
 } from 'lucide-react';
 
 export default function App() {
-  // Current primary module: 'loan' (Bảng tính lãi vay) vs 'savings' (Tiết kiệm trả sau)
-  const [currentModule, setCurrentModule] = useState<'loan' | 'savings'>('loan');
+  // Current primary module: 'loan' (Bảng tính lãi vay) vs 'savings' (Tiết kiệm trả sau) vs 'forex' (Mua bán ngoại tệ)
+  const [currentModule, setCurrentModule] = useState<'loan' | 'savings' | 'forex'>('loan');
 
   // Modal state for brand navigation items
   const [activeModal, setActiveModal] = useState<'ipay' | 'products' | 'pgd' | 'minigame' | null>(null);
@@ -75,10 +77,15 @@ export default function App() {
                     <Calculator className="w-3.5 h-3.5 text-amber-300" />
                     <span>Tiện ích tính lãi vay dư nợ giảm dần</span>
                   </>
-                ) : (
+                ) : currentModule === 'savings' ? (
                   <>
                     <Coins className="w-3.5 h-3.5 text-emerald-300" />
                     <span>Tiện ích tính lãi tiết kiệm trả sau</span>
+                  </>
+                ) : (
+                  <>
+                    <ArrowLeftRight className="w-3.5 h-3.5 text-amber-300" />
+                    <span>Tiện ích quy đổi & tra cứu tỷ giá ngoại tệ</span>
                   </>
                 )}
               </span>
@@ -87,13 +94,17 @@ export default function App() {
             <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight text-white leading-tight">
               {currentModule === 'loan'
                 ? 'Bảng Tính Lãi Suất Vay Trả Góp Dư Nợ Giảm Dần'
-                : contentData.header.title}
+                : currentModule === 'savings'
+                ? contentData.header.title
+                : 'Tra Cứu Tỷ Giá & Quy Đổi Ngoại Tệ Trực Tuyến'}
             </h2>
 
             <p className="mt-2.5 text-sm sm:text-base text-sky-100/90 leading-relaxed max-w-2xl">
               {currentModule === 'loan'
                 ? contentData.loanCalculator.subtitle
-                : contentData.header.subtitle}
+                : currentModule === 'savings'
+                ? contentData.header.subtitle
+                : 'Tiện ích quy đổi tỷ giá hối đoái ngoại tệ, tra cứu biểu giá mua bán tiền mặt, chuyển khoản và giá vàng niêm yết chính thức tại VietinBank.'}
             </p>
 
             {/* Quick module stats */}
@@ -124,7 +135,7 @@ export default function App() {
                   </span>
                 </div>
               </div>
-            ) : (
+            ) : currentModule === 'savings' ? (
               <div className="mt-6 pt-5 border-t border-sky-800/80 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
                 <div>
                   <span className="text-sky-300 block">Lãi suất cao nhất:</span>
@@ -151,6 +162,33 @@ export default function App() {
                   </span>
                 </div>
               </div>
+            ) : (
+              <div className="mt-6 pt-5 border-t border-sky-800/80 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+                <div>
+                  <span className="text-sky-300 block">USD Mua tiền mặt:</span>
+                  <span className="text-base sm:text-lg font-bold text-amber-300 font-mono">
+                    25.560
+                  </span>
+                </div>
+                <div>
+                  <span className="text-sky-300 block">USD Bán ra:</span>
+                  <span className="text-base sm:text-lg font-bold text-white font-mono">
+                    26.100
+                  </span>
+                </div>
+                <div>
+                  <span className="text-sky-300 block">EUR Mua chuyển khoản:</span>
+                  <span className="text-base sm:text-lg font-bold text-emerald-300 font-mono">
+                    29.347
+                  </span>
+                </div>
+                <div>
+                  <span className="text-sky-300 block">Cập nhật lúc:</span>
+                  <span className="text-base sm:text-lg font-bold text-white font-mono">
+                    16:30 (13/09)
+                  </span>
+                </div>
+              </div>
             )}
           </div>
         </div>
@@ -161,7 +199,7 @@ export default function App() {
           <div id="loan-calculator-section" className="space-y-6 animate-fadeIn">
             <LoanCalculator />
           </div>
-        ) : (
+        ) : currentModule === 'savings' ? (
           /* MODULE 2: CÔNG CỤ TÍNH LÃI SUẤT TIỀN GỬI TIẾT KIỆM */
           <div id="savings-calculator-section" className="space-y-8 animate-fadeIn">
             {/* Calculator section */}
@@ -235,6 +273,11 @@ export default function App() {
                 <BusinessRulesCard />
               </div>
             )}
+          </div>
+        ) : (
+          /* MODULE 3: MUA BÁN NGOẠI TỆ (QUY ĐỔI TỶ GIÁ & BẢNG TỶ GIÁ THEO PDF) */
+          <div id="forex-section" className="space-y-6 animate-fadeIn">
+            <ForexTrading />
           </div>
         )}
       </main>

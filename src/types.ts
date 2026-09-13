@@ -157,3 +157,26 @@ export interface ContentData {
     regulatoryNote: string;
   };
 }
+
+export type ForexTransactionType = 'cashBuy' | 'transferBuy' | 'sell';
+
+export interface ForexCurrencyItem {
+  code: string;
+  name: string;
+  flag: string;
+  cashCheckStar?: number;
+  cashCheckAmp?: number;
+  cashCheck?: number | null;
+  transfer: number;
+  sell: number;
+}
+
+export interface GoldRateItem {
+  updatedAt: string;
+  organization: string;
+  goldType: string;
+  weight: string;
+  buyPrice: string;
+  sellPrice: string;
+  unit: string;
+}

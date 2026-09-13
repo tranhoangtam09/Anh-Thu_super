@@ -1,7 +1,8 @@
 {
   "media": {
     "logo": "./assets/vietinbank-logo.png",
-    "fallbackLogo": "./assets/vietinbank-logo.svg"
+    "fallbackLogo": "./assets/vietinbank-logo.svg",
+    "consultingPhoto": "./assets/vtb-consulting.jpg"
   },
   "brand": {
     "bankName": "VietinBank",
@@ -20,6 +21,7 @@
     "navigation": [
       { "id": "loan", "label": "Tính lãi vay", "icon": "Calculator", "badge": "Mới" },
       { "id": "savings", "label": "Tính lãi tiết kiệm", "icon": "Coins", "badge": null },
+      { "id": "forex", "label": "Mua bán ngoại tệ", "icon": "ArrowLeftRight", "badge": "Mới" },
       { "id": "ipay", "label": "Hướng dẫn iPay", "icon": "Smartphone", "badge": null },
       { "id": "products", "label": "Sản phẩm nổi bật", "icon": "Sparkles", "badge": "Hot" },
       { "id": "pgd", "label": "Mạng lưới PGD", "icon": "MapPin", "badge": null },
@@ -346,7 +348,249 @@
       ]
     }
   },
-  "footer": {
+  "forexTrading": {
+      "converter": {
+        "title": "Quy đổi tỷ giá ngoại tệ/VND",
+        "subtitle": "Tiện ích quy đổi tỷ giá hối đoái ngoại tệ theo biểu giá niêm yết hiện hành của VietinBank.",
+        "tabs": [
+          { "id": "cashBuy", "label": "Mua tiền mặt & Séc" },
+          { "id": "transferBuy", "label": "Mua chuyển khoản" },
+          { "id": "sell", "label": "Bán" }
+        ],
+        "labels": {
+          "inputAmount": "Số tiền quý khách cần quy đổi",
+          "outputAmount": "Số tiền quy đổi",
+          "fromCurrency": "Ngoại tệ quy đổi",
+          "toCurrency": "Tiền tệ nhận",
+          "errorRequired": "Vui lòng nhập số quy đổi hợp lệ.",
+          "errorGreaterThanZero": "Vui lòng nhập số quy đổi hợp lệ.",
+          "warningMinAmount": "Số tiền quy đổi phải lớn hơn 0.",
+          "rateApplied": "Tỷ giá áp dụng:",
+          "exchangeDirection": "Chiều quy đổi:"
+        }
+      },
+      "exchangeRates": {
+        "title": "Tỷ giá",
+        "downloadButton": "Tải xuống bảng tỷ giá",
+        "filterDate": "Ngày cập nhật",
+        "filterTime": "Thời điểm cập nhật",
+        "filterCurrency": "Ngoại tệ",
+        "allCurrencies": "Tất cả",
+        "updateNotice": "Bảng tỷ giá được cập nhật lúc 16:30:00 ngày 13/09/2026 / Exchange rates are updated at 16:30:00 13/09/2026",
+        "starNote": "★: Áp dụng cho EUR, USD có mệnh giá 50, 100 (applied for EUR, USD big notes: 50, 100)",
+        "ampersandNote": "&: Áp dụng cho EUR, USD có mệnh giá < 50 (applied for EUR, USD small notes: < 50)",
+        "disclaimer": "Lưu ý: Bảng tỷ giá chỉ mang tính chất tham khảo",
+        "displayNotice": "Hiển thị ngắn gọn bảng tỷ giá cập nhật hiện tại tham khảo theo mẫu dưới:",
+        "columns": {
+          "currency": "Ngoại tệ / Currency",
+          "buyingRate": "Tỷ giá mua / Buying rate",
+          "cashAndCheck": "Tiền mặt & Séc / Cash & Check",
+          "transfer": "Chuyển khoản / Transfer",
+          "sellingRate": "Tỷ giá bán / Selling rate"
+        },
+        "currencies": [
+          {
+            "code": "USD",
+            "name": "Đô la Mỹ",
+            "flag": "🇺🇸",
+            "cashCheckStar": 25560,
+            "cashCheckAmp": 24820,
+            "transfer": 25560,
+            "sell": 26100
+          },
+          {
+            "code": "EUR",
+            "name": "Euro",
+            "flag": "🇪🇺",
+            "cashCheckStar": 29207,
+            "cashCheckAmp": 29197,
+            "transfer": 29347,
+            "sell": 30927
+          },
+          {
+            "code": "JPY",
+            "name": "Yên Nhật",
+            "flag": "🇯🇵",
+            "cashCheck": 163.31,
+            "transfer": 163.81,
+            "sell": 174.81
+          },
+          {
+            "code": "GBP",
+            "name": "Bảng Anh",
+            "flag": "🇬🇧",
+            "cashCheck": 34483,
+            "transfer": 34438,
+            "sell": 35663
+          },
+          {
+            "code": "AUD",
+            "name": "Đô la Úc",
+            "flag": "🇦🇺",
+            "cashCheck": 18135,
+            "transfer": 18185,
+            "sell": 19085
+          },
+          {
+            "code": "CAD",
+            "name": "Đô la Canada",
+            "flag": "🇨🇦",
+            "cashCheck": 18236,
+            "transfer": 18356,
+            "sell": 19086
+          },
+          {
+            "code": "CHF",
+            "name": "Franc Thụy Sĩ",
+            "flag": "🇨🇭",
+            "cashCheck": 31229,
+            "transfer": 31199,
+            "sell": 32259
+          },
+          {
+            "code": "CNY",
+            "name": "Nhân dân tệ",
+            "flag": "🇨🇳",
+            "cashCheck": null,
+            "transfer": 3784,
+            "sell": 3934
+          },
+          {
+            "code": "DKK",
+            "name": "Krone Đan Mạch",
+            "flag": "🇩🇰",
+            "cashCheck": null,
+            "transfer": 3922,
+            "sell": 4107
+          },
+          {
+            "code": "HKD",
+            "name": "Đô la Hồng Kông",
+            "flag": "🇭🇰",
+            "cashCheck": 3175,
+            "transfer": 3175,
+            "sell": 3380
+          },
+          {
+            "code": "KRW",
+            "name": "Won Hàn Quốc",
+            "flag": "🇰🇷",
+            "cashCheck": 16.32,
+            "transfer": 17.12,
+            "sell": 21.12
+          },
+          {
+            "code": "LAK",
+            "name": "Kip Lào",
+            "flag": "🇱🇦",
+            "cashCheck": null,
+            "transfer": 0.66,
+            "sell": 1.31
+          },
+          {
+            "code": "NOK",
+            "name": "Krone Na Uy",
+            "flag": "🇳🇴",
+            "cashCheck": null,
+            "transfer": 2703,
+            "sell": 2848
+          },
+          {
+            "code": "NZD",
+            "name": "Đô la New Zealand",
+            "flag": "🇳🇿",
+            "cashCheck": 14811,
+            "transfer": 14796,
+            "sell": 15401
+          },
+          {
+            "code": "SEK",
+            "name": "Krona Thụy Điển",
+            "flag": "🇸🇪",
+            "cashCheck": null,
+            "transfer": 2591,
+            "sell": 2733
+          },
+          {
+            "code": "SGD",
+            "name": "Đô la Singapore",
+            "flag": "🇸🇬",
+            "cashCheck": 19895,
+            "transfer": 19850,
+            "sell": 20805
+          },
+          {
+            "code": "THB",
+            "name": "Baht Thái",
+            "flag": "🇹🇭",
+            "cashCheck": 730.2,
+            "transfer": 768.9,
+            "sell": 798.2
+          },
+          {
+            "code": "SAR",
+            "name": "Riyal Ả Rập Xê Út",
+            "flag": "🇸🇦",
+            "cashCheck": null,
+            "transfer": 6652.8,
+            "sell": 7242.8
+          }
+        ]
+      },
+      "goldRates": {
+        "title": "Giá vàng",
+        "filterDateLabel": "Ngày cập nhật",
+        "defaultDate": "13/09/2026",
+        "columns": {
+          "updatedAt": "Ngày cập nhật",
+          "organization": "Tên tổ chức",
+          "goldType": "Loại vàng",
+          "weight": "Khối lượng",
+          "buyPrice": "Giá mua niêm yết",
+          "sellPrice": "Giá bán niêm yết",
+          "unit": "Đơn vị tính"
+        },
+        "items": [
+          {
+            "updatedAt": "13/09/2026 22:02",
+            "organization": "VietinBank",
+            "goldType": "Vàng miếng 9999 VietinBank",
+            "weight": "1 Lượng",
+            "buyPrice": "N/A",
+            "sellPrice": "N/A",
+            "unit": "VND/Lượng"
+          },
+          {
+            "updatedAt": "13/09/2026 22:02",
+            "organization": "VietinBank Gold",
+            "goldType": "Nhẫn tròn trơn 999.9 VietinBank",
+            "weight": "1 Chỉ",
+            "buyPrice": "8.250.000",
+            "sellPrice": "8.380.000",
+            "unit": "VND/Chỉ"
+          }
+        ]
+      },
+      "newsletter": {
+        "title": "Đăng ký nhận Tỷ giá/Bản tin ngoại hối",
+        "subtitle": "Cập nhật biến động tỷ giá hối đoái, lãi suất ngoại tệ và thị trường vàng nhanh chóng và chính xác nhất từ VietinBank.",
+        "fullNameLabel": "Họ và tên *",
+        "fullNamePlaceholder": "Ví dụ: Nguyễn Văn A",
+        "emailLabel": "Email *",
+        "emailPlaceholder": "email@example.com",
+        "newsletterTypeLabel": "Loại bản tin *",
+        "newsletterTypePlaceholder": "Chọn loại bản tin",
+        "options": [
+          "Bản tin tỷ giá hàng ngày (cập nhật 08:30 sáng)",
+          "Bản tin phân tích thị trường ngoại hối & vĩ mô tuần",
+          "Cảnh báo biến động nhanh tỷ giá USD, EUR & Vàng",
+          "Trọn bộ bản tin tài chính VietinBank"
+        ],
+        "submitButton": "ĐĂNG KÝ",
+        "successMessage": "Quý khách đã đăng ký nhận bản tin tỷ giá ngoại hối thành công! VietinBank sẽ gửi bản tin định kỳ tới hộp thư của Quý khách."
+      }
+    },
+    "footer": {
     "bankFullName": "Ngân hàng Thương mại Cổ phần Công Thương Việt Nam",
     "branchInfo": "VietinBank - Chi Nhánh Bạc Liêu",
     "disclaimer": "Lưu ý: Kết quả tính toán trên mang tính chất tham khảo tại thời điểm tra cứu. Lãi suất và lịch trả nợ thực tế phụ thuộc vào phê duyệt tín dụng của VietinBank tại từng thời kỳ và điều khoản hợp đồng tín dụng ký kết.",
