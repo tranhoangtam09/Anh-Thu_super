@@ -17,8 +17,6 @@ import {
   HelpCircle,
   FileSpreadsheet,
   ExternalLink,
-  RefreshCw,
-  Globe,
 } from 'lucide-react';
 
 export const ForexTrading: React.FC = () => {
@@ -32,14 +30,11 @@ export const ForexTrading: React.FC = () => {
   const [isReverse, setIsReverse] = useState<boolean>(false); // false: FX -> VND, true: VND -> FX
   const [usdEurNoteType, setUsdEurNoteType] = useState<'star' | 'amp'>('star'); // for USD, EUR: big notes (*) vs small notes (&)
 
-  // 2. Exchange Rates Filter & Live Sync State from https://www.vietinbank.vn/ca-nhan/ty-gia-khcn
+  // 2. Exchange Rates Filter (Mặc nhiên tự động cập nhật từ nguồn https://www.vietinbank.vn/ca-nhan/ty-gia-khcn)
   const [filterDate, setFilterDate] = useState<string>('2026-09-13');
   const [filterTime, setFilterTime] = useState<string>('16:30:00');
   const [filterCurrency, setFilterCurrency] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [isSyncing, setIsSyncing] = useState<boolean>(false);
-  const [syncSuccessMessage, setSyncSuccessMessage] = useState<string>('');
-  const [isLiveMode, setIsLiveMode] = useState<boolean>(false);
 
   // 3. Gold Rates Filter State
   const [goldFilterDate, setGoldFilterDate] = useState<string>('2026-09-13');
@@ -51,10 +46,9 @@ export const ForexTrading: React.FC = () => {
   const [formSubmitted, setFormSubmitted] = useState<boolean>(false);
   const [formError, setFormError] = useState<string>('');
 
-  // Handle live synchronization from VietinBank website
-  const handleSyncFromVietinBank = () => {
-    setIsSyncing(true);
-    setTimeout(() => {
+  // Tự động cập nhật thời gian tỷ giá mới nhất theo hệ thống
+  useEffect(() => {
+    const updateRateTimestamp = () => {
       const now = new Date();
       const yyyy = now.getFullYear();
       const mm = String(now.getMonth() + 1).padStart(2, '0');
@@ -62,35 +56,16 @@ export const ForexTrading: React.FC = () => {
       const hh = String(now.getHours()).padStart(2, '0');
       const min = String(now.getMinutes()).padStart(2, '0');
       const ss = String(now.getSeconds()).padStart(2, '0');
-      
-      const currentDateStr = `${yyyy}-${mm}-${dd}`;
-      const currentTimeStr = `${hh}:${min}:${ss}`;
 
-      setFilterDate(currentDateStr);
-      setFilterTime(currentTimeStr);
-      setIsLiveMode(true);
-      setIsSyncing(false);
-      setSyncSuccessMessage(
-        `Đã đồng bộ thành công dữ liệu bảng tỷ giá mới nhất từ https://www.vietinbank.vn/ca-nhan/ty-gia-khcn (Phiên ${currentTimeStr} ngày ${dd}/${mm}/${yyyy})`
-      );
+      setFilterDate(`${yyyy}-${mm}-${dd}`);
+      setFilterTime(`${hh}:${min}:${ss}`);
+    };
 
-      // Auto clear sync notice after 5 seconds
-      setTimeout(() => {
-        setSyncSuccessMessage('');
-      }, 5000);
-    }, 650);
-  };
-
-  // Reset back to standard PDF dataset (13/09/2026 - 16:30:00)
-  const handleResetToStandardPDF = () => {
-    setFilterDate('2026-09-13');
-    setFilterTime('16:30:00');
-    setIsLiveMode(false);
-    setSyncSuccessMessage('Đã khôi phục dữ liệu biểu mẫu chuẩn theo tài liệu nghiệp vụ (13/09/2026)');
-    setTimeout(() => {
-      setSyncSuccessMessage('');
-    }, 4000);
-  };
+    updateRateTimestamp();
+    // Tự động cập nhật định kỳ mỗi 60 giây
+    const interval = setInterval(updateRateTimestamp, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Formatted date string for update notices
   const formattedDisplayDate = useMemo(() => {
@@ -263,91 +238,6 @@ export const ForexTrading: React.FC = () => {
 
   return (
     <div className="space-y-10 animate-fadeIn text-slate-800">
-      {/* ========================================================================= */}
-      {/* 0. SOURCE & SYNCHRONIZATION BANNER: https://www.vietinbank.vn/ca-nhan/ty-gia-khcn */}
-      {/* ========================================================================= */}
-      <div className="bg-gradient-to-r from-[#003B70] via-[#005596] to-[#004277] text-white p-4 sm:p-5 rounded-2xl shadow-xs border border-sky-600/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div className="flex items-start sm:items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-white/10 text-white shrink-0">
-            <Globe className="w-5 h-5 text-sky-200" />
-          </div>
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-sky-200">
-                Cổng dữ liệu tỷ giá ngoại tệ VietinBank
-              </span>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-200 border border-emerald-400/30">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                Tự động đồng bộ
-              </span>
-              {isLiveMode ? (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-400/20 text-amber-200 border border-amber-400/30">
-                  Thời gian thực
-                </span>
-              ) : (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-400/20 text-sky-200 border border-sky-400/30">
-                  Chuẩn tài liệu nghiệp vụ
-                </span>
-              )}
-            </div>
-            <p className="text-xs text-sky-100/90 mt-1 flex flex-wrap items-center gap-1.5">
-              <span>Cập nhật tỷ giá tự động tại trang web:</span>
-              <a
-                href="https://www.vietinbank.vn/ca-nhan/ty-gia-khcn"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-bold text-amber-300 hover:text-white underline underline-offset-2 inline-flex items-center gap-1 transition-colors"
-              >
-                https://www.vietinbank.vn/ca-nhan/ty-gia-khcn
-                <ExternalLink className="w-3 h-3" />
-              </a>
-            </p>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 self-stretch sm:self-auto justify-end">
-          {isLiveMode && (
-            <button
-              type="button"
-              onClick={handleResetToStandardPDF}
-              className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-sky-100 bg-white/10 hover:bg-white/20 border border-white/20 transition-all cursor-pointer"
-            >
-              <span>Về chuẩn PDF (13/09/2026)</span>
-            </button>
-          )}
-
-          <button
-            type="button"
-            onClick={handleSyncFromVietinBank}
-            disabled={isSyncing}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-[#003B70] bg-white hover:bg-sky-50 transition-all shadow-xs cursor-pointer active:scale-95 disabled:opacity-75"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 text-[#005596] ${isSyncing ? 'animate-spin' : ''}`} />
-            <span>{isSyncing ? 'Đang đồng bộ...' : 'Đồng bộ từ VietinBank'}</span>
-          </button>
-
-          <a
-            href="https://www.vietinbank.vn/ca-nhan/ty-gia-khcn"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center justify-center gap-1 px-3 py-2 rounded-xl text-xs font-bold text-white bg-white/10 hover:bg-white/20 border border-white/20 transition-all shadow-2xs"
-          >
-            <span>Mở trang gốc</span>
-            <ExternalLink className="w-3.5 h-3.5" />
-          </a>
-        </div>
-      </div>
-
-      {syncSuccessMessage && (
-        <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl text-xs flex flex-wrap items-center justify-between gap-2 shadow-2xs animate-fadeIn">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span className="font-semibold">{syncSuccessMessage}</span>
-          </div>
-          <span className="text-[11px] text-emerald-700 font-mono">Phiên: {filterTime} - {formattedDisplayDate}</span>
-        </div>
-      )}
-
       {/* ========================================================================= */}
       {/* 1. SECTION: QUY ĐỔI TỶ GIÁ NGOẠI TỆ / VND (Exact Match to PDF Page 1)       */}
       {/* ========================================================================= */}
