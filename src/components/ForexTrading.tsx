@@ -16,13 +16,18 @@ import {
   History,
 } from 'lucide-react';
 
-// Benchmark baseline date & time from official PDF document
-const BENCHMARK_DATE = '2026-09-13';
-const BENCHMARK_TIME = '16:30:00';
-
 // Helper to get latest date and session time matching VietinBank official portal
 const getLatestDateStr = () => {
   const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+};
+
+const getYesterdayDateStr = () => {
+  const now = new Date();
+  now.setDate(now.getDate() - 1);
   const yyyy = now.getFullYear();
   const mm = String(now.getMonth() + 1).padStart(2, '0');
   const dd = String(now.getDate()).padStart(2, '0');
@@ -48,13 +53,16 @@ const getLatestTimeStr = () => {
 };
 
 // Calculate deterministic, realistic day-by-day exchange rates
+// "Ngày chuẩn hôm nay / ngày mới nhất: Giữ nguyên 100% các giá trị niêm yết chuẩn từng con số theo tài liệu nghiệp vụ VietinBank."
 function getRatesForDate(
   baseCurrencies: ForexCurrencyItem[],
   dateStr: string,
   timeStr: string
 ): ForexCurrencyItem[] {
-  // If exactly benchmark date & time, return exact unmodified rates from official document
-  if (dateStr === BENCHMARK_DATE && timeStr === BENCHMARK_TIME) {
+  const todayStr = getLatestDateStr();
+
+  // If today / latest date with 16:30:00, return exact 100% benchmark values
+  if (dateStr === todayStr && timeStr === '16:30:00') {
     return baseCurrencies;
   }
 
@@ -64,14 +72,19 @@ function getRatesForDate(
   }
   const [y, m, d] = parts;
   const targetDate = new Date(y, m - 1, d);
-  const benchDate = new Date(2026, 8, 13); // September 13, 2026
-  const diffDays = Math.round((targetDate.getTime() - benchDate.getTime()) / (1000 * 60 * 60 * 24));
+  const [ty, tm, td] = todayStr.split('-').map(Number);
+  const anchorDate = new Date(ty, tm - 1, td);
+  const diffDays = Math.round((targetDate.getTime() - anchorDate.getTime()) / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0 && timeStr === '16:30:00') {
+    return baseCurrencies;
+  }
 
   // Session intraday variance
   let sessionDelta = 0;
   if (timeStr === '08:30:00') sessionDelta = -0.0006;
   else if (timeStr === '11:00:00') sessionDelta = -0.0002;
-  else sessionDelta = 0.0004;
+  else sessionDelta = 0;
 
   return baseCurrencies.map((c) => {
     // Unique seed per currency code
@@ -82,7 +95,7 @@ function getRatesForDate(
       Math.cos(diffDays * 0.08 + seed * 0.5) * 0.005;
     const factor = 1 + wave + sessionDelta;
 
-    const isDecimal = ['JPY', 'KRW', 'THB', 'LAK'].includes(c.code);
+    const isDecimal = ['JPY', 'KRW', 'THB', 'LAK', 'SAR'].includes(c.code);
 
     const roundRate = (val?: number | null) => {
       if (val === undefined || val === null) return val;
@@ -93,7 +106,7 @@ function getRatesForDate(
       return Math.round(adjusted);
     };
 
-    // USD special logic: maintain 740 VND spread between big notes (*) and small notes (&), and standard buy/sell spread
+    // USD special logic: maintain 740 VND spread between big notes (*) and small notes (&), and standard buy/sell spread (25.560 transfer / 26.100 sell)
     if (c.code === 'USD') {
       const transfer = roundRate(c.transfer) || 25560;
       const star = transfer;
@@ -108,12 +121,12 @@ function getRatesForDate(
       };
     }
 
-    // EUR special logic: maintain 10 VND note spread and 30 VND cash/transfer spread
+    // EUR special logic: maintain 10 VND note spread and 140 VND cash/transfer spread (29.207 cash* vs 29.347 transfer, and 30.927 sell)
     if (c.code === 'EUR') {
-      const transfer = roundRate(c.transfer) || 29237;
-      const star = transfer - 30;
+      const transfer = roundRate(c.transfer) || 29347;
+      const star = transfer - 140;
       const amp = star - 10;
-      const sell = Math.round(transfer + 1250);
+      const sell = Math.round(transfer + 1580);
       return {
         ...c,
         cashCheckStar: star,
@@ -161,12 +174,12 @@ export const ForexTrading: React.FC = () => {
 
   // Formatted date string for update notices (DD/MM/YYYY)
   const formattedDisplayDate = useMemo(() => {
-    if (!filterDate) return '13/09/2026';
-    const parts = filterDate.split('-');
+    const target = filterDate || getLatestDateStr();
+    const parts = target.split('-');
     if (parts.length === 3) {
       return `${parts[2]}/${parts[1]}/${parts[0]}`;
     }
-    return filterDate;
+    return target;
   }, [filterDate]);
 
   // Notice text matching PDF Page 1
@@ -268,6 +281,38 @@ export const ForexTrading: React.FC = () => {
     }
   };
 
+  // Block any non-digit keystrokes (Không cho phép nhập ký tự chữ)
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Allow navigation and control keys
+    if (
+      [
+        'Backspace',
+        'Delete',
+        'Tab',
+        'Escape',
+        'Enter',
+        'ArrowLeft',
+        'ArrowRight',
+        'Home',
+        'End',
+      ].includes(e.key)
+    ) {
+      return;
+    }
+    // Allow copy/paste/select all shortcuts
+    if (e.ctrlKey || e.metaKey) {
+      return;
+    }
+    // Allow decimal point if not already typed
+    if (e.key === '.' && !rawAmountInput.includes('.')) {
+      return;
+    }
+    // Strictly disallow letters and special characters
+    if (!/^[0-9]$/.test(e.key)) {
+      e.preventDefault();
+    }
+  };
+
   // Filter currencies for the table
   const filteredCurrencies = useMemo(() => {
     return effectiveCurrencies.filter((c) => {
@@ -342,21 +387,21 @@ export const ForexTrading: React.FC = () => {
   const dateStatusInfo = useMemo(() => {
     if (filterDate === getLatestDateStr()) {
       return {
-        badge: 'Hôm nay - Mới nhất',
-        text: `Tỷ giá phiên ${filterTime} hôm nay (${formattedDisplayDate}) tự động cập nhật từ VietinBank`,
+        badge: 'Ngày mới nhất',
+        text: `Ngày mới nhất (${formattedDisplayDate}) - Phiên ${filterTime}. Giữ nguyên 100% các giá trị niêm yết chuẩn từng con số theo tài liệu nghiệp vụ VietinBank.`,
         color: 'text-emerald-700 bg-emerald-50 border-emerald-200',
       };
     }
-    if (filterDate === BENCHMARK_DATE) {
+    if (filterDate === getYesterdayDateStr()) {
       return {
-        badge: 'Ngày chuẩn tài liệu PDF',
-        text: `Tỷ giá niêm yết chuẩn mẫu nghiệp vụ VietinBank ngày 13/09/2026 (${filterTime})`,
-        color: 'text-sky-700 bg-sky-50 border-sky-200',
+        badge: 'Hôm qua',
+        text: `Biểu tỷ giá ngày hôm qua (${formattedDisplayDate}) - Phiên ${filterTime}`,
+        color: 'text-indigo-700 bg-indigo-50 border-indigo-200',
       };
     }
     return {
       badge: 'Tra cứu theo ngày',
-      text: `Đang xem biểu tỷ giá lịch sử ngày ${formattedDisplayDate} (Phiên ${filterTime})`,
+      text: `Hệ thống tự động cập nhật biểu tỷ giá tương ứng theo ngày (${formattedDisplayDate}) với biên độ biến động sát thực tế`,
       color: 'text-amber-700 bg-amber-50 border-amber-200',
     };
   }, [filterDate, filterTime, formattedDisplayDate]);
@@ -369,13 +414,18 @@ export const ForexTrading: React.FC = () => {
       <section className="bg-white rounded-2xl shadow-xs border border-slate-200/80 p-6 sm:p-8 space-y-6">
         {/* Main Title & Active Date Pill */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <h2 className="text-xl sm:text-2xl font-extrabold text-[#003B70] tracking-tight">
-            {converter.title}
-          </h2>
+          <div>
+            <h2 className="text-xl sm:text-2xl font-extrabold text-[#003B70] tracking-tight">
+              {converter.title}
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Tự động áp dụng tỷ giá của ngày được chọn tại Bảng tỷ giá bên dưới
+            </p>
+          </div>
           <div
-            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${dateStatusInfo.color} self-start sm:self-auto`}
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-2xs self-start sm:self-auto"
           >
-            <History className="w-3.5 h-3.5 shrink-0" />
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
             <span>Áp dụng tỷ giá ngày {formattedDisplayDate}</span>
           </div>
         </div>
@@ -452,6 +502,7 @@ export const ForexTrading: React.FC = () => {
                 inputMode="decimal"
                 value={rawAmountInput}
                 onChange={handleAmountChange}
+                onKeyDown={handleKeyDown}
                 placeholder="0"
                 className="w-full bg-transparent text-2xl sm:text-3xl font-bold text-slate-800 focus:outline-none font-mono"
               />
@@ -634,22 +685,22 @@ export const ForexTrading: React.FC = () => {
               <label className="block font-semibold text-slate-700">
                 {exchangeRates.filterDate}
               </label>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1.5">
                 <button
                   type="button"
                   onClick={() => handleStepDay(-1)}
-                  className="p-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors cursor-pointer"
-                  title="Xem ngày trước"
+                  className="px-2 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold inline-flex items-center gap-0.5 transition-colors cursor-pointer border border-slate-200"
+                  title="Duyệt tỷ giá ngày trước"
                 >
-                  <ChevronLeft className="w-3.5 h-3.5" />
+                  ◀ Ngày trước
                 </button>
                 <button
                   type="button"
                   onClick={() => handleStepDay(1)}
-                  className="p-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors cursor-pointer"
-                  title="Xem ngày sau"
+                  className="px-2 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold inline-flex items-center gap-0.5 transition-colors cursor-pointer border border-slate-200"
+                  title="Duyệt tỷ giá ngày sau"
                 >
-                  <ChevronRight className="w-3.5 h-3.5" />
+                  Ngày sau ▶
                 </button>
               </div>
             </div>
@@ -667,47 +718,45 @@ export const ForexTrading: React.FC = () => {
             <div className="flex flex-wrap items-center gap-1.5 mt-2">
               <button
                 type="button"
-                onClick={() => setFilterDate(getLatestDateStr())}
-                className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors cursor-pointer ${
+                onClick={() => {
+                  setFilterDate(getLatestDateStr());
+                  setFilterTime(getLatestTimeStr());
+                }}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
                   filterDate === getLatestDateStr()
-                    ? 'bg-emerald-600 text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    ? 'bg-[#005596] text-white shadow-xs'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 }`}
+                title="Xem tỷ giá ngày mới nhất"
               >
-                Hôm nay
+                [Ngày mới nhất]
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  const now = new Date();
-                  now.setDate(now.getDate() - 1);
-                  const yyyy = now.getFullYear();
-                  const mm = String(now.getMonth() + 1).padStart(2, '0');
-                  const dd = String(now.getDate()).padStart(2, '0');
-                  setFilterDate(`${yyyy}-${mm}-${dd}`);
-                }}
-                className="px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors cursor-pointer"
+                onClick={() => setFilterDate(getLatestDateStr())}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
+                  filterDate === getLatestDateStr()
+                    ? 'bg-[#005596] text-white shadow-xs'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
               >
-                Hôm qua
+                [Hôm nay]
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setFilterDate(BENCHMARK_DATE);
-                  setFilterTime(BENCHMARK_TIME);
-                }}
-                className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors cursor-pointer ${
-                  filterDate === BENCHMARK_DATE
-                    ? 'bg-[#005596] text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                onClick={() => setFilterDate(getYesterdayDateStr())}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
+                  filterDate === getYesterdayDateStr()
+                    ? 'bg-[#005596] text-white shadow-xs'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 }`}
               >
-                13/09/2026 (Chuẩn PDF)
+                [Hôm qua]
               </button>
             </div>
 
-            <p className="text-[11px] text-emerald-600 font-medium mt-1.5">
-              ● {dateStatusInfo.badge}: {formattedDisplayDate}
+            <p className="text-[11px] text-emerald-700 font-medium mt-1.5 leading-snug">
+              ● <span className="font-bold">{dateStatusInfo.badge}:</span> {formattedDisplayDate}
             </p>
           </div>
 

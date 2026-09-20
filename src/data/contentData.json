@@ -378,7 +378,7 @@
         "allCurrencies": "Tất cả",
         "sourceUrl": "https://www.vietinbank.vn/ca-nhan/ty-gia-khcn",
         "sourceNotice": "Cập nhật tỷ giá tự động tại trang web: https://www.vietinbank.vn/ca-nhan/ty-gia-khcn",
-        "updateNotice": "Bảng tỷ giá được cập nhật lúc 16:30:00 ngày 13/09/2026/ Exchange rates are updated at 16:30:00 13/09/2026",
+        "updateNotice": "Bảng tỷ giá được cập nhật lúc 16:30:00 ngày mới nhất/ Exchange rates are updated at 16:30:00 latest date",
         "starNote": "*: Áp dụng cho EUR, USD có mệnh giá 50, 100 (applied for EUR, USD big notes: 50, 100)",
         "ampersandNote": "&: Áp dụng cho EUR, USD có mệnh giá < 50 (applied for EUR, USD small notes: < 50)",
         "disclaimer": "Lưu ý: Bảng tỷ giá chỉ mang tính chất tham khảo",
@@ -542,7 +542,7 @@
       "goldRates": {
         "title": "Giá vàng",
         "filterDateLabel": "Ngày cập nhật",
-        "defaultDate": "13/09/2026",
+        "defaultDate": "Ngày mới nhất",
         "columns": {
           "updatedAt": "Ngày cập nhật",
           "organization": "Tên tổ chức",
@@ -554,7 +554,7 @@
         },
         "items": [
           {
-            "updatedAt": "13/09/2026 22:02",
+            "updatedAt": "Ngày mới nhất",
             "organization": "VietinBank",
             "goldType": "Vàng miếng 9999 VietinBank",
             "weight": "1 Lượng",
@@ -563,7 +563,7 @@
             "unit": "VND/Lượng"
           },
           {
-            "updatedAt": "13/09/2026 22:02",
+            "updatedAt": "Ngày mới nhất",
             "organization": "VietinBank Gold",
             "goldType": "Nhẫn tròn trơn 999.9 VietinBank",
             "weight": "1 Chỉ",
