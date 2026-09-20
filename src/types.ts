@@ -198,7 +198,9 @@ export interface PledgeCalculationResult {
   depositAmount: number;
   maxLtvRatio: number;
   maxLoanLimit: number;
-  loanTermMonths: number;
+  loanTermDays: number;
+  loanTermMonths?: number;
+  loanMaturityDate: string;
   annualRate: number;
   periodRatePercent: number;
   disbursementDate: string;

@@ -1,12 +1,20 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   RepaymentCycle,
   RoundingRule,
   PledgeRepaymentMethod,
   PledgeCalculationResult,
 } from '../types';
-import { calculatePledgeLoan, calculateMaxAllowedMonths } from '../utils/pledgeLoanCalculator';
-import { formatVND, parseFormattedNumber, formatRate, numberToVietnameseWords } from '../utils/formatters';
+import {
+  calculatePledgeLoan,
+  calculateMaxAllowedDays,
+} from '../utils/pledgeLoanCalculator';
+import {
+  formatVND,
+  parseFormattedNumber,
+  formatRate,
+  numberToVietnameseWords,
+} from '../utils/formatters';
 import {
   Calculator,
   RotateCcw,
@@ -20,6 +28,7 @@ import {
   BookOpen,
   DollarSign,
   TrendingDown,
+  Clock,
 } from 'lucide-react';
 
 export const PledgeLoanCalculator: React.FC = () => {
@@ -34,13 +43,18 @@ export const PledgeLoanCalculator: React.FC = () => {
 
   // =========================================================================
   // 2. THÔNG TIN KHOẢN VAY CẦM CỐ (Section 3)
-  // Nhập trực tiếp, không sử dụng thanh kéo/thả. Phương thức mặc định: trả một lần khi đến hạn
+  // - Số tiền vay: nhập trực tiếp, không sử dụng thanh kéo/thả.
+  // - Thời hạn vay (ngày): tối đa bằng ngày đến hạn sổ tiết kiệm.
+  // - Chu kỳ trả nợ: bằng ngày đến hạn sổ tiết kiệm.
+  // - Phương thức trả nợ mặc định: trả một lần vào ngày đến hạn khoản vay
   // =========================================================================
   const [loanAmountRaw, setLoanAmountRaw] = useState<string>('500000000'); // 500.000.000 VNĐ
   const [annualRateStr, setAnnualRateStr] = useState<string>('12.0'); // 12%/năm
   const [disbursementDate, setDisbursementDate] = useState<string>('2026-01-10');
-  const [loanTermMonths, setLoanTermMonths] = useState<number>(12);
-  const [repaymentMethod, setRepaymentMethod] = useState<PledgeRepaymentMethod>('bullet'); // Mặc định: trả một lần khi đến hạn (Section 3)
+
+  // Thời hạn vay (ngày) - mặc định 370 ngày (khoảng cách từ 10/01/2026 đến 15/01/2027)
+  const [loanTermDays, setLoanTermDays] = useState<number>(370);
+  const [repaymentMethod, setRepaymentMethod] = useState<PledgeRepaymentMethod>('bullet'); // Mặc định: trả một lần vào ngày đến hạn (Section 3 & 5)
   const [repaymentCycle, setRepaymentCycle] = useState<RepaymentCycle>('monthly');
   const [repaymentDay, setRepaymentDay] = useState<number>(25);
   const [roundingRule, setRoundingRule] = useState<RoundingRule>('dong');
@@ -73,10 +87,17 @@ export const PledgeLoanCalculator: React.FC = () => {
     return Math.round(numericDepositAmount * (maxLtvRatio / 100));
   }, [numericDepositAmount, maxLtvRatio]);
 
-  // Số tháng tối đa cho phép từ ngày giải ngân đến ngày đáo hạn sổ (Section 3 & 8)
-  const maxAllowedMonths = useMemo(() => {
-    return calculateMaxAllowedMonths(disbursementDate, depositMaturityDate);
+  // Số NGÀY tối đa cho phép từ ngày giải ngân đến ngày đến hạn sổ (Section 3: Thời hạn vay (ngày): tối đa bằng ngày đến hạn sổ tiết kiệm)
+  const maxAllowedDays = useMemo(() => {
+    return calculateMaxAllowedDays(disbursementDate, depositMaturityDate);
   }, [disbursementDate, depositMaturityDate]);
+
+  // Khi người dùng thay đổi ngày giải ngân hoặc ngày đáo hạn sổ, nếu loanTermDays chưa chỉnh hoặc vượt quá, có thể tự động đồng bộ
+  useEffect(() => {
+    if (maxAllowedDays > 0 && loanTermDays > maxAllowedDays) {
+      setLoanTermDays(maxAllowedDays);
+    }
+  }, [maxAllowedDays]);
 
   // Tính toán khoản vay
   const result: PledgeCalculationResult = useMemo(() => {
@@ -89,7 +110,7 @@ export const PledgeLoanCalculator: React.FC = () => {
       loanAmount: numericLoanAmount,
       annualRate: numericAnnualRate,
       disbursementDate,
-      loanTermMonths,
+      loanTermDays,
       repaymentMethod,
       repaymentCycle,
       repaymentDay,
@@ -105,7 +126,7 @@ export const PledgeLoanCalculator: React.FC = () => {
     numericLoanAmount,
     numericAnnualRate,
     disbursementDate,
-    loanTermMonths,
+    loanTermDays,
     repaymentMethod,
     repaymentCycle,
     repaymentDay,
@@ -134,7 +155,7 @@ export const PledgeLoanCalculator: React.FC = () => {
     setLoanAmountRaw('500000000');
     setAnnualRateStr('12.0');
     setDisbursementDate('2026-01-10');
-    setLoanTermMonths(12);
+    setLoanTermDays(370);
     setRepaymentMethod('bullet');
     setRepaymentCycle('monthly');
     setRepaymentDay(25);
@@ -151,7 +172,7 @@ export const PledgeLoanCalculator: React.FC = () => {
     }
   };
 
-  // Nút [XEM CHI TIẾT] (Section 8 PDF cũ / Section 11 cấu trúc màn hình)
+  // Nút [XEM CHI TIẾT]
   const handleViewDetails = () => {
     setShowSchedule(true);
     if (scheduleRef.current) {
@@ -198,8 +219,8 @@ export const PledgeLoanCalculator: React.FC = () => {
       [
         `BẢNG LỊCH TRẢ NỢ VAY CẦM CỐ SỔ TIẾT KIỆM`,
         `Giá trị sổ tiết kiệm: ${formatVND(result.depositAmount)} VNĐ | Tỷ lệ LTV: ${result.maxLtvRatio}% | Hạn mức tối đa: ${formatVND(result.maxLoanLimit)} VNĐ`,
-        `Số tiền vay: ${formatVND(result.loanAmount)} VNĐ | Thời hạn: ${result.loanTermMonths} tháng | Lãi suất: ${result.annualRate}%/năm`,
-        `Phương thức: ${result.repaymentMethod === 'bullet' ? 'Trả một lần vào ngày đến hạn' : 'Gốc trả đều, lãi dư nợ giảm dần'}`,
+        `Số tiền vay: ${formatVND(result.loanAmount)} VNĐ | Thời hạn vay: ${result.loanTermDays} ngày | Ngày đến hạn: ${result.loanMaturityDate} | Lãi suất: ${result.annualRate}%/năm`,
+        `Phương thức: ${result.repaymentMethod === 'bullet' ? 'Trả một lần vào ngày đến hạn khoản vay' : 'Gốc trả đều, lãi dư nợ giảm dần'}`,
         '',
         headers.join(','),
         ...rows.map((r) => r.join(',')),
@@ -292,7 +313,7 @@ export const PledgeLoanCalculator: React.FC = () => {
       {/* 2 & 3. THÔNG TIN SỔ TIẾT KIỆM & THÔNG TIN KHOẢN VAY                       */}
       {/* ========================================================================= */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        {/* CARD: THÔNG TIN SỔ TIẾT KIỆM */}
+        {/* CARD: THÔNG TIN SỔ TIẾT KIỆM (Section 2) */}
         <div className="bg-white rounded-xl border border-slate-200 p-5 space-y-4 shadow-2xs">
           <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
             <BookOpen className="w-4 h-4 text-[#003B70]" />
@@ -334,7 +355,7 @@ export const PledgeLoanCalculator: React.FC = () => {
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Ngày đáo hạn sổ <span className="text-rose-500">*</span>
+                Ngày đến hạn sổ <span className="text-rose-500">*</span>
               </label>
               <input
                 type="date"
@@ -377,7 +398,7 @@ export const PledgeLoanCalculator: React.FC = () => {
           </div>
         </div>
 
-        {/* CARD: THÔNG TIN KHOẢN VAY CẦM CỐ */}
+        {/* CARD: THÔNG TIN KHOẢN VAY CẦM CỐ (Section 3) */}
         <div className="bg-white rounded-xl border border-slate-200 p-5 space-y-4 shadow-2xs">
           <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
             <DollarSign className="w-4 h-4 text-[#003B70]" />
@@ -386,7 +407,7 @@ export const PledgeLoanCalculator: React.FC = () => {
             </h3>
           </div>
 
-          {/* Số tiền vay: Nhập trực tiếp, không sử dụng slider (Section 3) */}
+          {/* Số tiền vay: Nhập trực tiếp, không sử dụng thanh kéo/thả (Section 3) */}
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="text-xs font-semibold text-slate-700">
@@ -413,7 +434,7 @@ export const PledgeLoanCalculator: React.FC = () => {
             </p>
           </div>
 
-          {/* Lãi suất vay & Thời hạn vay */}
+          {/* Lãi suất vay & Ngày giải ngân */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -430,28 +451,6 @@ export const PledgeLoanCalculator: React.FC = () => {
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Thời hạn vay (tháng) <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="number"
-                min="1"
-                max={maxAllowedMonths || 120}
-                value={loanTermMonths}
-                onChange={(e) => setLoanTermMonths(Math.max(1, Number(e.target.value) || 1))}
-                className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs sm:text-sm font-bold font-mono"
-              />
-              {maxAllowedMonths > 0 && (
-                <span className="text-[10px] text-slate-400 block mt-0.5">
-                  Tối đa: {maxAllowedMonths} tháng (đến đáo hạn sổ)
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Ngày giải ngân & Phương thức trả nợ */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
                 Ngày giải ngân <span className="text-rose-500">*</span>
               </label>
               <input
@@ -461,7 +460,88 @@ export const PledgeLoanCalculator: React.FC = () => {
                 className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs sm:text-sm font-medium"
               />
             </div>
+          </div>
 
+          {/* THỜI HẠN VAY (NGÀY): TỐI ĐA BẰNG NGÀY ĐẾN HẠN SỔ TIẾT KIỆM (Section 3) */}
+          <div className="bg-slate-50/80 p-3 rounded-lg border border-slate-200 space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-[#003B70]" />
+                <span>Thời hạn vay (ngày)</span> <span className="text-rose-500">*</span>
+              </label>
+              {maxAllowedDays > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setLoanTermDays(maxAllowedDays)}
+                  className="text-[11px] font-bold text-[#003B70] hover:underline cursor-pointer"
+                >
+                  Bằng hạn sổ ({maxAllowedDays} ngày)
+                </button>
+              )}
+            </div>
+
+            <div className="relative">
+              <input
+                type="number"
+                min="1"
+                max={maxAllowedDays || 9999}
+                value={loanTermDays || ''}
+                onChange={(e) => setLoanTermDays(Math.max(0, Number(e.target.value) || 0))}
+                placeholder="Nhập số ngày vay"
+                className="w-full bg-white border border-slate-300 focus:border-[#003B70] rounded-lg px-3 py-2 text-sm font-bold font-mono text-slate-800"
+              />
+              <span className="absolute right-3 top-2.5 text-xs font-semibold text-slate-400">
+                ngày
+              </span>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-1 text-[11px]">
+              <span className="text-slate-500">
+                Tối đa: <strong className="text-slate-800 font-mono">{maxAllowedDays} ngày</strong> (tính đến ngày đến hạn sổ)
+              </span>
+              {result.loanMaturityDate && result.loanMaturityDate !== '-' && (
+                <span className="text-[#003B70] font-semibold">
+                  Ngày đáo hạn: <strong className="font-mono">{result.loanMaturityDate}</strong>
+                </span>
+              )}
+            </div>
+
+            {/* Các nút chọn nhanh số ngày phổ biến */}
+            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+              {[30, 60, 90, 180, 365]
+                .filter((d) => d <= (maxAllowedDays || 9999))
+                .map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => setLoanTermDays(d)}
+                    className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-colors cursor-pointer ${
+                      loanTermDays === d
+                        ? 'bg-[#003B70] text-white'
+                        : 'bg-white hover:bg-slate-200 text-slate-700 border border-slate-200'
+                    }`}
+                  >
+                    {d} ngày
+                  </button>
+                ))}
+              {maxAllowedDays > 0 && ![30, 60, 90, 180, 365].includes(maxAllowedDays) && (
+                <button
+                  type="button"
+                  onClick={() => setLoanTermDays(maxAllowedDays)}
+                  className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-colors cursor-pointer ${
+                    loanTermDays === maxAllowedDays
+                      ? 'bg-[#003B70] text-white'
+                      : 'bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300'
+                  }`}
+                >
+                  Tối đa theo sổ ({maxAllowedDays} ngày)
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Phương thức trả nợ & Chu kỳ trả nợ (Section 3: Mặc định trả một lần khi đến hạn, chu kỳ = bằng ngày đến hạn sổ) */}
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
                 Phương thức trả nợ
@@ -475,15 +555,16 @@ export const PledgeLoanCalculator: React.FC = () => {
                 <option value="declining">Gốc đều, lãi giảm dần</option>
               </select>
             </div>
-          </div>
 
-          {/* Chu kỳ trả nợ & ngày trả nợ định kỳ (nếu là gốc đều, lãi giảm dần) */}
-          {repaymentMethod === 'declining' && (
-            <div className="grid grid-cols-2 gap-3 pt-1 border-t border-slate-100">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Chu kỳ trả nợ
-                </label>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Chu kỳ trả nợ
+              </label>
+              {repaymentMethod === 'bullet' ? (
+                <div className="w-full bg-slate-100 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 font-medium">
+                  Đến hạn khoản vay ({result.loanMaturityDate || '-'})
+                </div>
+              ) : (
                 <select
                   value={repaymentCycle}
                   onChange={(e) => setRepaymentCycle(e.target.value as RepaymentCycle)}
@@ -494,23 +575,27 @@ export const PledgeLoanCalculator: React.FC = () => {
                   <option value="semiAnnual">6 tháng</option>
                   <option value="annual">Hằng năm</option>
                 </select>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Ngày trả nợ định kỳ
-                </label>
-                <select
-                  value={repaymentDay}
-                  onChange={(e) => setRepaymentDay(Number(e.target.value))}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-medium"
-                >
-                  {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
-                    <option key={d} value={d}>
-                      Ngày {d}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              )}
+            </div>
+          </div>
+
+          {/* Ngày trả nợ định kỳ (nếu là gốc đều, lãi giảm dần) */}
+          {repaymentMethod === 'declining' && (
+            <div className="pt-1 border-t border-slate-100">
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Ngày trả nợ định kỳ hằng tháng
+              </label>
+              <select
+                value={repaymentDay}
+                onChange={(e) => setRepaymentDay(Number(e.target.value))}
+                className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-medium"
+              >
+                {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
+                  <option key={d} value={d}>
+                    Ngày {d}
+                  </option>
+                ))}
+              </select>
             </div>
           )}
         </div>
@@ -644,7 +729,7 @@ export const PledgeLoanCalculator: React.FC = () => {
       </div>
 
       {/* ========================================================================= */}
-      {/* 6. TỔNG QUAN KHOẢN VAY (Section 7 của tài liệu mới)                        */}
+      {/* 6. TỔNG QUAN KHOẢN VAY (Section 7 của tài liệu)                           */}
       {/* ========================================================================= */}
       {result.schedule.length > 0 && (
         <div
@@ -667,19 +752,25 @@ export const PledgeLoanCalculator: React.FC = () => {
               </span>
             </div>
 
-            {/* 2. Thời hạn vay */}
+            {/* 2. Thời hạn vay (ngày) & Ngày đến hạn */}
             <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
               <span className="text-slate-500 block">Thời hạn vay:</span>
               <span className="text-base font-bold text-slate-800 font-mono mt-0.5 block">
-                {result.loanTermMonths} tháng
+                {result.loanTermDays} ngày
+              </span>
+              <span className="text-[10px] text-slate-400 block mt-0.5">
+                Đáo hạn: {result.loanMaturityDate}
               </span>
             </div>
 
             {/* 3. Lãi suất */}
             <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
-              <span className="text-slate-500 block">Lãi suất:</span>
+              <span className="text-slate-500 block">Lãi suất cho vay:</span>
               <span className="text-base font-bold text-amber-600 font-mono mt-0.5 block">
                 {formatRate(result.annualRate)}%/năm
+              </span>
+              <span className="text-[10px] text-slate-400 block mt-0.5">
+                Cơ sở tính: 365 ngày
               </span>
             </div>
 
@@ -736,6 +827,7 @@ export const PledgeLoanCalculator: React.FC = () => {
                 {result.repaymentMethod === 'bullet'
                   ? 'Trả một lần vào ngày đến hạn khoản vay'
                   : 'Trả gốc đều, lãi tính trên dư nợ giảm dần'}
+                {' • '}Thời hạn vay: {result.loanTermDays} ngày
               </p>
             </div>
 

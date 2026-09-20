@@ -11,7 +11,7 @@ export function formatDateDDMMYYYY(d: Date): string {
 }
 
 /**
- * Parse YYYY-MM-DD to Date object at UTC/Local midnight safely
+ * Parse YYYY-MM-DD to Date object at local midnight safely
  */
 export function parseDateString(dateStr: string): Date | null {
   if (!dateStr || !dateStr.includes('-')) return null;
@@ -25,7 +25,21 @@ export function parseDateString(dateStr: string): Date | null {
 }
 
 /**
- * Calculate maximum allowed loan term in months between disbursement date and deposit maturity date
+ * Calculate maximum allowed loan term in DAYS between disbursement date and deposit maturity date
+ * Theo Section 3 & 8: Thời hạn vay (ngày): tối đa bằng ngày đến hạn sổ tiết kiệm.
+ */
+export function calculateMaxAllowedDays(disbursementDateStr: string, maturityDateStr: string): number {
+  const disb = parseDateString(disbursementDateStr);
+  const mat = parseDateString(maturityDateStr);
+  if (!disb || !mat || mat.getTime() <= disb.getTime()) return 0;
+
+  const diffTime = mat.getTime() - disb.getTime();
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+  return Math.max(0, diffDays);
+}
+
+/**
+ * Calculate maximum allowed loan term in months (for reference)
  */
 export function calculateMaxAllowedMonths(disbursementDateStr: string, maturityDateStr: string): number {
   const disb = parseDateString(disbursementDateStr);
@@ -40,8 +54,19 @@ export function calculateMaxAllowedMonths(disbursementDateStr: string, maturityD
 }
 
 /**
+ * Get loan maturity date given disbursement date and loan term in days
+ */
+export function getLoanMaturityDate(disbursementDateStr: string, loanTermDays: number): { dateStr: string; dateObj: Date } {
+  const disb = parseDateString(disbursementDateStr) || new Date();
+  const targetDate = new Date(disb.getFullYear(), disb.getMonth(), disb.getDate() + loanTermDays);
+  return {
+    dateStr: formatDateDDMMYYYY(targetDate),
+    dateObj: targetDate,
+  };
+}
+
+/**
  * Calculate subsequent payment date given disbursement date, period index, cycle, and preferred repayment day
- * Handles leap years and variable month lengths safely.
  */
 export function getPaymentDateForPledge(
   disbursementDateStr: string,
@@ -81,10 +106,11 @@ export interface PledgeCalculationParams {
   loanAmount: number;
   annualRate: number;
   disbursementDate: string;
-  loanTermMonths: number;
-  repaymentMethod?: PledgeRepaymentMethod; // 'declining' | 'bullet'
-  repaymentCycle: RepaymentCycle;
-  repaymentDay: number;
+  loanTermDays: number; // Thời hạn vay tính bằng ngày (Section 3: Thời hạn vay (ngày): tối đa bằng ngày đến hạn sổ)
+  loanTermMonths?: number;
+  repaymentMethod?: PledgeRepaymentMethod; // 'bullet' | 'declining'
+  repaymentCycle?: RepaymentCycle;
+  repaymentDay?: number;
   maxLtvRatio: number; // e.g. 95 for 95%
   roundingRule: RoundingRule;
 }
@@ -102,10 +128,11 @@ export function calculatePledgeLoan(params: PledgeCalculationParams): PledgeCalc
     loanAmount,
     annualRate,
     disbursementDate,
+    loanTermDays,
     loanTermMonths,
-    repaymentMethod = 'declining',
-    repaymentCycle,
-    repaymentDay,
+    repaymentMethod = 'bullet',
+    repaymentCycle = 'monthly',
+    repaymentDay = 25,
     maxLtvRatio,
     roundingRule,
   } = params;
@@ -119,7 +146,7 @@ export function calculatePledgeLoan(params: PledgeCalculationParams): PledgeCalc
   const isExceeded = loanAmount > maxLoanLimit;
   const exceededAmount = isExceeded ? loanAmount - maxLoanLimit : 0;
 
-  // 2. Validate Inputs according to Section 10 of PDF (Kiểm tra dữ liệu và cảnh báo)
+  // 2. Validate Inputs according to Section 8 of PDF (Kiểm tra dữ liệu và cảnh báo)
   // Tiêu chí 1: Chưa nhập số tiền vay hoặc số tiền vay <= 0
   if (!loanAmount || loanAmount <= 0) {
     errors.push('Chưa nhập số tiền vay hoặc số tiền vay ≤ 0 VNĐ.');
@@ -130,9 +157,9 @@ export function calculatePledgeLoan(params: PledgeCalculationParams): PledgeCalc
     errors.push('Chưa nhập lãi suất cho vay hoặc lãi suất < 0%/năm.');
   }
 
-  // Tiêu chí 3: Chưa nhập thời hạn hoặc thời hạn <= 0
-  if (!loanTermMonths || loanTermMonths <= 0) {
-    errors.push('Chưa nhập thời hạn vay hoặc thời hạn vay ≤ 0 tháng.');
+  // Tiêu chí 3: Chưa nhập thời hạn hoặc thời hạn <= 0 (thời hạn tính bằng ngày)
+  if (!loanTermDays || loanTermDays <= 0) {
+    errors.push('Chưa nhập thời hạn vay hoặc thời hạn vay ≤ 0 ngày.');
   }
 
   // Tiêu chí 4: Ngày giải ngân không hợp lệ
@@ -156,19 +183,15 @@ export function calculatePledgeLoan(params: PledgeCalculationParams): PledgeCalc
     }
   }
 
-  // Tiêu chí 7: Thời hạn vay vượt thời gian cho phép của sổ tiết kiệm
-  if (disbD && maturityD && loanTermMonths > 0) {
-    const loanEndYear = disbD.getFullYear() + Math.floor((disbD.getMonth() + loanTermMonths) / 12);
-    const loanEndMonth = (disbD.getMonth() + loanTermMonths) % 12;
-    const loanEndDay = disbD.getDate();
-    const maxDays = new Date(loanEndYear, loanEndMonth + 1, 0).getDate();
-    const loanEndDate = new Date(loanEndYear, loanEndMonth, Math.min(loanEndDay, maxDays));
+  // Tính số ngày tối đa cho phép từ ngày giải ngân đến ngày đến hạn sổ tiết kiệm
+  const maxAllowedDays = disbD && maturityD ? calculateMaxAllowedDays(disbursementDate, depositMaturityDate) : 0;
 
-    if (loanEndDate.getTime() > maturityD.getTime()) {
+  // Tiêu chí 7: Thời hạn vay vượt thời gian cho phép của sổ tiết kiệm
+  if (disbD && maturityD && loanTermDays > 0) {
+    const { dateStr: loanMaturityDateStr, dateObj: loanEndDate } = getLoanMaturityDate(disbursementDate, loanTermDays);
+    if (loanTermDays > maxAllowedDays || loanEndDate.getTime() > maturityD.getTime()) {
       errors.push(
-        `Thời hạn vay (${loanTermMonths} tháng, kết thúc ngày ${formatDateDDMMYYYY(
-          loanEndDate
-        )}) vượt thời gian cho phép của sổ tiết kiệm (đáo hạn ngày ${formatDateDDMMYYYY(
+        `Thời hạn vay (${loanTermDays} ngày, đáo hạn ngày ${loanMaturityDateStr}) vượt thời gian cho phép của sổ tiết kiệm (tối đa ${maxAllowedDays} ngày, đáo hạn sổ ngày ${formatDateDDMMYYYY(
           maturityD
         )}).`
       );
@@ -191,14 +214,21 @@ export function calculatePledgeLoan(params: PledgeCalculationParams): PledgeCalc
     errors.push('Vui lòng nhập số tiền trên sổ tiết kiệm lớn hơn 0 VNĐ.');
   }
 
-  // Early return if invalid or exceeded - do NOT generate schedule (Section 4 & 10)
+  // Calculate loan maturity date
+  const { dateStr: computedLoanMaturityDate } = disbD && loanTermDays > 0
+    ? getLoanMaturityDate(disbursementDate, loanTermDays)
+    : { dateStr: '-' };
+
+  // Early return if invalid or exceeded - do NOT generate schedule (Section 4 & 8)
   if (errors.length > 0) {
     return {
       loanAmount: loanAmount || 0,
       depositAmount: depositAmount || 0,
       maxLtvRatio: effectiveLtvRatio,
       maxLoanLimit,
-      loanTermMonths: loanTermMonths || 0,
+      loanTermDays: loanTermDays || 0,
+      loanTermMonths: loanTermMonths || Math.round((loanTermDays || 0) / 30),
+      loanMaturityDate: computedLoanMaturityDate,
       annualRate: annualRate || 0,
       periodRatePercent: 0,
       disbursementDate,
@@ -232,27 +262,19 @@ export function calculatePledgeLoan(params: PledgeCalculationParams): PledgeCalc
     return Math.round(val);
   };
 
-  // Case A: Trả một lần vào ngày đến hạn khoản vay (Gốc & Lãi cuối kỳ - Section 3)
+  // =========================================================================
+  // Case A: Trả một lần vào ngày đến hạn khoản vay (Gốc & Lãi cuối kỳ - Section 3 & 5 Mặc định)
+  // Tiền lãi tính theo số ngày vay thực tế: Số tiền vay × (Lãi suất/100) × (Số ngày vay / 365)
+  // =========================================================================
   if (repaymentMethod === 'bullet') {
-    const disbYear = disbD!.getFullYear();
-    const disbMonth = disbD!.getMonth();
-    const disbDay = disbD!.getDate();
-
-    const endYear = disbYear + Math.floor((disbMonth + loanTermMonths) / 12);
-    const endMonth = (disbMonth + loanTermMonths) % 12;
-    const maxDays = new Date(endYear, endMonth + 1, 0).getDate();
-    const maturityDateObj = new Date(endYear, endMonth, Math.min(disbDay, maxDays));
-    const maturityDateStr = formatDateDDMMYYYY(maturityDateObj);
-
-    // Total interest = LoanAmount * (annualRate / 100) * (loanTermMonths / 12)
-    const rawInterest = loanAmount * (annualRate / 100) * (loanTermMonths / 12);
+    const rawInterest = loanAmount * (annualRate / 100) * (loanTermDays / 365);
     const bulletInterest = roundValue(rawInterest);
     const totalRepay = loanAmount + bulletInterest;
 
     const bulletSchedule: PledgeScheduleRow[] = [
       {
         period: 1,
-        paymentDate: maturityDateStr,
+        paymentDate: computedLoanMaturityDate,
         beginningBalance: loanAmount,
         principalPaid: loanAmount,
         interestPaid: bulletInterest,
@@ -266,9 +288,11 @@ export function calculatePledgeLoan(params: PledgeCalculationParams): PledgeCalc
       depositAmount,
       maxLtvRatio: effectiveLtvRatio,
       maxLoanLimit,
-      loanTermMonths,
+      loanTermDays,
+      loanTermMonths: loanTermMonths || Math.round(loanTermDays / 30),
+      loanMaturityDate: computedLoanMaturityDate,
       annualRate,
-      periodRatePercent: annualRate * (loanTermMonths / 12),
+      periodRatePercent: annualRate * (loanTermDays / 365),
       disbursementDate,
       depositOpenDate,
       depositMaturityDate,
@@ -292,7 +316,9 @@ export function calculatePledgeLoan(params: PledgeCalculationParams): PledgeCalc
     };
   }
 
-  // Case B: Trả gốc đều, lãi trên dư nợ giảm dần (Section 5 & 13)
+  // =========================================================================
+  // Case B: Trả gốc đều, lãi trên dư nợ giảm dần (Section 5)
+  // =========================================================================
   let divisor = 12;
   let cycleMonths = 1;
   switch (repaymentCycle) {
@@ -315,10 +341,11 @@ export function calculatePledgeLoan(params: PledgeCalculationParams): PledgeCalc
       break;
   }
 
-  // Total periods
-  const totalPeriods = Math.max(1, Math.ceil(loanTermMonths / cycleMonths));
+  // Calculate total periods based on loan term in days (roughly ~30 days per month)
+  const approxMonths = Math.max(1, Math.round(loanTermDays / 30.4375));
+  const totalPeriods = Math.max(1, Math.ceil(approxMonths / cycleMonths));
 
-  // Period interest rate (Lãi suất tháng/kỳ = Lãi suất năm / divisor)
+  // Period interest rate
   const periodRate = annualRate / 100 / divisor;
   const periodRatePercent = annualRate / divisor;
 
@@ -333,12 +360,19 @@ export function calculatePledgeLoan(params: PledgeCalculationParams): PledgeCalc
   let totalInterest = 0;
 
   for (let k = 1; k <= totalPeriods; k++) {
-    const { dateStr } = getPaymentDateForPledge(
-      disbursementDate,
-      k,
-      cycleMonths,
-      repaymentDay
-    );
+    let dateStr = '';
+    if (k === totalPeriods) {
+      // Kỳ cuối cùng luôn rơi vào ngày đến hạn khoản vay
+      dateStr = computedLoanMaturityDate;
+    } else {
+      const pDate = getPaymentDateForPledge(
+        disbursementDate,
+        k,
+        cycleMonths,
+        repaymentDay
+      );
+      dateStr = pDate.dateStr;
+    }
 
     // Interest for this period = Beginning balance * periodRate
     const rawInterest = currentBeginning * periodRate;
@@ -348,7 +382,7 @@ export function calculatePledgeLoan(params: PledgeCalculationParams): PledgeCalc
 
     if (k === totalPeriods) {
       // Final period: adjust to ensure sum of principal equals exact initial loan amount
-      // and ending balance is strictly 0 (Section 6 & 14)
+      // and ending balance is strictly 0 (Section 6)
       principalThisPeriod = currentBeginning;
     } else {
       principalThisPeriod = Math.min(standardPrincipal, currentBeginning);
@@ -384,7 +418,9 @@ export function calculatePledgeLoan(params: PledgeCalculationParams): PledgeCalc
     depositAmount,
     maxLtvRatio: effectiveLtvRatio,
     maxLoanLimit,
-    loanTermMonths,
+    loanTermDays,
+    loanTermMonths: approxMonths,
+    loanMaturityDate: computedLoanMaturityDate,
     annualRate,
     periodRatePercent,
     disbursementDate,
