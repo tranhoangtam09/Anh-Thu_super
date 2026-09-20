@@ -17,8 +17,8 @@ import {
 } from 'lucide-react';
 
 interface HeaderProps {
-  currentModule: 'savings' | 'loan' | 'forex';
-  onSelectModule: (module: 'savings' | 'loan' | 'forex') => void;
+  currentModule: 'savings' | 'loan' | 'forex' | 'pledge';
+  onSelectModule: (module: 'savings' | 'loan' | 'forex' | 'pledge') => void;
   onOpenModal: (modal: 'ipay' | 'products' | 'pgd' | 'minigame') => void;
   onReset?: () => void;
 }
@@ -167,6 +167,25 @@ export const Header: React.FC<HeaderProps> = ({
               currentModule === 'forex' ? 'bg-rose-600 text-white' : 'bg-rose-100 text-rose-700'
             }`}>
               Tỷ giá
+            </span>
+          </button>
+
+          {/* Tab 4: Cầm cố sổ tiết kiệm */}
+          <button
+            type="button"
+            onClick={() => onSelectModule('pledge')}
+            className={`px-3.5 py-2 rounded-xl font-bold flex items-center gap-1.5 whitespace-nowrap transition-all cursor-pointer ${
+              currentModule === 'pledge'
+                ? 'bg-[#005596] text-white shadow-xs shadow-[#005596]/30'
+                : 'text-slate-600 hover:text-[#005596] hover:bg-sky-50/60'
+            }`}
+          >
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>Cầm cố sổ tiết kiệm</span>
+            <span className={`text-[10px] px-1.5 py-0.2 rounded font-semibold ${
+              currentModule === 'pledge' ? 'bg-amber-400 text-slate-900' : 'bg-amber-100 text-amber-800'
+            }`}>
+              Hạn mức
             </span>
           </button>
 

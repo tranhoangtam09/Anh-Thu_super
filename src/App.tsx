@@ -4,6 +4,7 @@ import { Header } from './components/Header';
 import { DepositCalculator } from './components/DepositCalculator';
 import { LoanCalculator } from './components/LoanCalculator';
 import { ForexTrading } from './components/ForexTrading';
+import { PledgeLoanCalculator } from './components/PledgeLoanCalculator';
 import { BusinessRulesCard } from './components/BusinessRulesCard';
 import { TermComparison } from './components/TermComparison';
 import { BrandModals } from './components/BrandModals';
@@ -24,8 +25,8 @@ import {
 } from 'lucide-react';
 
 export default function App() {
-  // Current primary module: 'loan' (Bảng tính lãi vay) vs 'savings' (Tiết kiệm trả sau) vs 'forex' (Mua bán ngoại tệ)
-  const [currentModule, setCurrentModule] = useState<'loan' | 'savings' | 'forex'>('loan');
+  // Current primary module: 'loan' vs 'savings' vs 'forex' vs 'pledge'
+  const [currentModule, setCurrentModule] = useState<'loan' | 'savings' | 'forex' | 'pledge'>('pledge');
 
   // Modal state for brand navigation items
   const [activeModal, setActiveModal] = useState<'ipay' | 'products' | 'pgd' | 'minigame' | null>(null);
@@ -82,10 +83,15 @@ export default function App() {
                     <Coins className="w-3.5 h-3.5 text-emerald-300" />
                     <span>Tiện ích tính lãi tiết kiệm trả sau</span>
                   </>
-                ) : (
+                ) : currentModule === 'forex' ? (
                   <>
                     <ArrowLeftRight className="w-3.5 h-3.5 text-amber-300" />
                     <span>Tiện ích quy đổi & tra cứu tỷ giá ngoại tệ</span>
+                  </>
+                ) : (
+                  <>
+                    <ShieldCheck className="w-3.5 h-3.5 text-amber-300" />
+                    <span>Mô phỏng khoản vay cầm cố sổ tiết kiệm</span>
                   </>
                 )}
               </span>
@@ -96,7 +102,9 @@ export default function App() {
                 ? 'Bảng Tính Lãi Suất Vay Trả Góp Dư Nợ Giảm Dần'
                 : currentModule === 'savings'
                 ? contentData.header.title
-                : 'Tra Cứu Tỷ Giá & Quy Đổi Ngoại Tệ Trực Tuyến'}
+                : currentModule === 'forex'
+                ? 'Tra Cứu Tỷ Giá & Quy Đổi Ngoại Tệ Trực Tuyến'
+                : 'Mô Phỏng Khoản Vay Cầm Cố Sổ Tiết Kiệm'}
             </h2>
 
             <p className="mt-2.5 text-sm sm:text-base text-sky-100/90 leading-relaxed max-w-2xl">
@@ -104,7 +112,9 @@ export default function App() {
                 ? contentData.loanCalculator.subtitle
                 : currentModule === 'savings'
                 ? contentData.header.subtitle
-                : 'Tiện ích quy đổi tỷ giá hối đoái ngoại tệ, tra cứu biểu giá mua bán tiền mặt, chuyển khoản và giá vàng niêm yết chính thức tại VietinBank.'}
+                : currentModule === 'forex'
+                ? 'Tiện ích quy đổi tỷ giá hối đoái ngoại tệ, tra cứu biểu giá mua bán tiền mặt, chuyển khoản và giá vàng niêm yết chính thức tại VietinBank.'
+                : 'Tự động tính toán hạn mức vay tối đa theo tỷ lệ giá trị sổ, số tiền trả nợ định kỳ và lập lịch thu nợ chi tiết theo phương thức gốc đều, lãi giảm dần.'}
             </p>
 
             {/* Quick module stats */}
@@ -162,7 +172,7 @@ export default function App() {
                   </span>
                 </div>
               </div>
-            ) : (
+            ) : currentModule === 'forex' ? (
               <div className="mt-6 pt-5 border-t border-sky-800/80 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
                 <div>
                   <span className="text-sky-300 block">USD Mua tiền mặt:</span>
@@ -186,6 +196,33 @@ export default function App() {
                   <span className="text-sky-300 block">Cập nhật lúc:</span>
                   <span className="text-base sm:text-lg font-bold text-white font-mono">
                     16:30 (13/09)
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-6 pt-5 border-t border-sky-800/80 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+                <div>
+                  <span className="text-sky-300 block">Tỷ lệ cho vay tối đa:</span>
+                  <span className="text-base sm:text-lg font-bold text-amber-300 font-mono">
+                    Đến 95% sổ
+                  </span>
+                </div>
+                <div>
+                  <span className="text-sky-300 block">Thời hạn vay linh hoạt:</span>
+                  <span className="text-base sm:text-lg font-bold text-white font-mono">
+                    1 - 120 tháng
+                  </span>
+                </div>
+                <div>
+                  <span className="text-sky-300 block">Phương thức tính lãi:</span>
+                  <span className="text-base sm:text-lg font-bold text-white">
+                    Dư nợ giảm dần
+                  </span>
+                </div>
+                <div>
+                  <span className="text-sky-300 block">Tất toán kỳ cuối:</span>
+                  <span className="text-base sm:text-lg font-bold text-emerald-300 font-mono">
+                    Dư nợ về 0
                   </span>
                 </div>
               </div>
@@ -274,10 +311,15 @@ export default function App() {
               </div>
             )}
           </div>
-        ) : (
+        ) : currentModule === 'forex' ? (
           /* MODULE 3: MUA BÁN NGOẠI TỆ (QUY ĐỔI TỶ GIÁ & BẢNG TỶ GIÁ THEO PDF) */
           <div id="forex-section" className="space-y-6 animate-fadeIn">
             <ForexTrading />
+          </div>
+        ) : (
+          /* MODULE 4: CẦM CỐ SỔ TIẾT KIỆM (THEO CHUẨN PDF NGHIỆP VỤ VIETINBANK) */
+          <div id="pledge-loan-section" className="space-y-6 animate-fadeIn">
+            <PledgeLoanCalculator />
           </div>
         )}
       </main>

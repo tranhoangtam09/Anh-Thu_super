@@ -1,6 +1,6 @@
 {
   "name": "Công cụ tính lãi suất tiền gửi",
-  "description": "Công cụ tính lãi suất tiền gửi và bảng tính lãi vay trả góp dư nợ giảm dần chuẩn nghiệp vụ VietinBank Chi Nhánh Bạc Liêu.",
+  "description": "Công cụ tính lãi suất tiền gửi, bảng tính lãi vay trả góp dư nợ giảm dần, mua bán ngoại tệ và cấu phần mô phỏng khoản vay cầm cố sổ tiết kiệm chuẩn nghiệp vụ VietinBank Chi Nhánh Bạc Liêu.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

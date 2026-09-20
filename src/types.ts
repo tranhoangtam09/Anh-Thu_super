@@ -180,3 +180,42 @@ export interface GoldRateItem {
   sellPrice: string;
   unit: string;
 }
+
+export interface PledgeScheduleRow {
+  period: number;
+  paymentDate: string;
+  beginningBalance: number;
+  principalPaid: number;
+  interestPaid: number;
+  totalPaid: number;
+  endingBalance: number;
+}
+
+export interface PledgeCalculationResult {
+  loanAmount: number;
+  depositAmount: number;
+  maxLtvRatio: number;
+  maxLoanLimit: number;
+  loanTermMonths: number;
+  annualRate: number;
+  periodRatePercent: number;
+  disbursementDate: string;
+  depositOpenDate: string;
+  depositMaturityDate: string;
+  depositRate: number;
+  currency: string;
+  repaymentCycle: RepaymentCycle;
+  repaymentDay: number;
+  roundingRule: RoundingRule;
+  totalPeriods: number;
+  schedule: PledgeScheduleRow[];
+  firstPeriodPayment: number;
+  totalPrincipal: number;
+  totalInterest: number;
+  totalRepayment: number;
+  finalBalance: number;
+  isExceeded: boolean;
+  exceededAmount: number;
+  validationErrors: string[];
+  validationWarnings: string[];
+}
