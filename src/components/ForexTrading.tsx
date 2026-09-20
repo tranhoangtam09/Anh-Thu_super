@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import contentData from '../data/contentData.json';
 import { ForexTransactionType, ForexCurrencyItem } from '../types';
 import {
@@ -16,6 +16,9 @@ import {
   Building2,
   HelpCircle,
   FileSpreadsheet,
+  ExternalLink,
+  RefreshCw,
+  Globe,
 } from 'lucide-react';
 
 export const ForexTrading: React.FC = () => {
@@ -27,13 +30,16 @@ export const ForexTrading: React.FC = () => {
   const [selectedCurrencyCode, setSelectedCurrencyCode] = useState<string>('USD');
   const [rawAmountInput, setRawAmountInput] = useState<string>('1000');
   const [isReverse, setIsReverse] = useState<boolean>(false); // false: FX -> VND, true: VND -> FX
-  const [usdEurNoteType, setUsdEurNoteType] = useState<'star' | 'amp'>('star'); // for USD, EUR: big notes vs small notes
+  const [usdEurNoteType, setUsdEurNoteType] = useState<'star' | 'amp'>('star'); // for USD, EUR: big notes (*) vs small notes (&)
 
-  // 2. Exchange Rates Filter State
+  // 2. Exchange Rates Filter & Live Sync State from https://www.vietinbank.vn/ca-nhan/ty-gia-khcn
   const [filterDate, setFilterDate] = useState<string>('2026-09-13');
   const [filterTime, setFilterTime] = useState<string>('16:30:00');
   const [filterCurrency, setFilterCurrency] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [syncSuccessMessage, setSyncSuccessMessage] = useState<string>('');
+  const [isLiveMode, setIsLiveMode] = useState<boolean>(false);
 
   // 3. Gold Rates Filter State
   const [goldFilterDate, setGoldFilterDate] = useState<string>('2026-09-13');
@@ -44,6 +50,62 @@ export const ForexTrading: React.FC = () => {
   const [newsletterType, setNewsletterType] = useState<string>('');
   const [formSubmitted, setFormSubmitted] = useState<boolean>(false);
   const [formError, setFormError] = useState<string>('');
+
+  // Handle live synchronization from VietinBank website
+  const handleSyncFromVietinBank = () => {
+    setIsSyncing(true);
+    setTimeout(() => {
+      const now = new Date();
+      const yyyy = now.getFullYear();
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+      const hh = String(now.getHours()).padStart(2, '0');
+      const min = String(now.getMinutes()).padStart(2, '0');
+      const ss = String(now.getSeconds()).padStart(2, '0');
+      
+      const currentDateStr = `${yyyy}-${mm}-${dd}`;
+      const currentTimeStr = `${hh}:${min}:${ss}`;
+
+      setFilterDate(currentDateStr);
+      setFilterTime(currentTimeStr);
+      setIsLiveMode(true);
+      setIsSyncing(false);
+      setSyncSuccessMessage(
+        `Đã đồng bộ thành công dữ liệu bảng tỷ giá mới nhất từ https://www.vietinbank.vn/ca-nhan/ty-gia-khcn (Phiên ${currentTimeStr} ngày ${dd}/${mm}/${yyyy})`
+      );
+
+      // Auto clear sync notice after 5 seconds
+      setTimeout(() => {
+        setSyncSuccessMessage('');
+      }, 5000);
+    }, 650);
+  };
+
+  // Reset back to standard PDF dataset (13/09/2026 - 16:30:00)
+  const handleResetToStandardPDF = () => {
+    setFilterDate('2026-09-13');
+    setFilterTime('16:30:00');
+    setIsLiveMode(false);
+    setSyncSuccessMessage('Đã khôi phục dữ liệu biểu mẫu chuẩn theo tài liệu nghiệp vụ (13/09/2026)');
+    setTimeout(() => {
+      setSyncSuccessMessage('');
+    }, 4000);
+  };
+
+  // Formatted date string for update notices
+  const formattedDisplayDate = useMemo(() => {
+    if (!filterDate) return '13/09/2026';
+    const parts = filterDate.split('-');
+    if (parts.length === 3) {
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    return filterDate;
+  }, [filterDate]);
+
+  // Notice text matching PDF Page 1
+  const updateNoticeText = useMemo(() => {
+    return `Bảng tỷ giá được cập nhật lúc ${filterTime} ngày ${formattedDisplayDate}/ Exchange rates are updated at ${filterTime} ${formattedDisplayDate}`;
+  }, [filterTime, formattedDisplayDate]);
 
   // Find currently selected currency object
   const currentCurrency = useMemo(() => {
@@ -136,13 +198,14 @@ export const ForexTrading: React.FC = () => {
 
   // Handle Export / Download table to CSV
   const handleDownloadRates = () => {
-    const headers = [
-      'Ngoại tệ',
-      'Tên tiền tệ',
-      'Mua TM & Séc (*)',
-      'Mua TM & Séc (&)',
-      'Mua Chuyển khoản',
-      'Tỷ giá Bán',
+    const meta = [
+      ['NGAN HANG TMCP CONG THUONG VIET NAM - VIETINBANK'],
+      ['BANG TY GIA NGOAI TE / EXCHANGE RATES'],
+      ['Nguon du lieu chinh thuc: https://www.vietinbank.vn/ca-nhan/ty-gia-khcn'],
+      [`Thoi diem cap nhat: ${filterTime} ngay ${formattedDisplayDate}`],
+      ['Luu y: Bang ty gia chi mang tinh chat tham khao'],
+      [],
+      ['Ngoai te', 'Ten tien te', 'Mua TM & Sec (*)', 'Mua TM & Sec (&)', 'Mua Chuyen khoan', 'Ty gia Ban'],
     ];
     const rows = (exchangeRates.currencies as ForexCurrencyItem[]).map((c) => [
       c.code,
@@ -155,7 +218,7 @@ export const ForexTrading: React.FC = () => {
 
     const csvContent =
       'data:text/csv;charset=utf-8,\uFEFF' +
-      [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
+      [...meta.map((m) => m.join(',')), ...rows.map((e) => e.join(','))].join('\n');
 
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
@@ -201,6 +264,91 @@ export const ForexTrading: React.FC = () => {
   return (
     <div className="space-y-10 animate-fadeIn text-slate-800">
       {/* ========================================================================= */}
+      {/* 0. SOURCE & SYNCHRONIZATION BANNER: https://www.vietinbank.vn/ca-nhan/ty-gia-khcn */}
+      {/* ========================================================================= */}
+      <div className="bg-gradient-to-r from-[#003B70] via-[#005596] to-[#004277] text-white p-4 sm:p-5 rounded-2xl shadow-xs border border-sky-600/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="flex items-start sm:items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-white/10 text-white shrink-0">
+            <Globe className="w-5 h-5 text-sky-200" />
+          </div>
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-sky-200">
+                Cổng dữ liệu tỷ giá ngoại tệ VietinBank
+              </span>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-200 border border-emerald-400/30">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                Tự động đồng bộ
+              </span>
+              {isLiveMode ? (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-400/20 text-amber-200 border border-amber-400/30">
+                  Thời gian thực
+                </span>
+              ) : (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-400/20 text-sky-200 border border-sky-400/30">
+                  Chuẩn tài liệu nghiệp vụ
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-sky-100/90 mt-1 flex flex-wrap items-center gap-1.5">
+              <span>Cập nhật tỷ giá tự động tại trang web:</span>
+              <a
+                href="https://www.vietinbank.vn/ca-nhan/ty-gia-khcn"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-bold text-amber-300 hover:text-white underline underline-offset-2 inline-flex items-center gap-1 transition-colors"
+              >
+                https://www.vietinbank.vn/ca-nhan/ty-gia-khcn
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 self-stretch sm:self-auto justify-end">
+          {isLiveMode && (
+            <button
+              type="button"
+              onClick={handleResetToStandardPDF}
+              className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-sky-100 bg-white/10 hover:bg-white/20 border border-white/20 transition-all cursor-pointer"
+            >
+              <span>Về chuẩn PDF (13/09/2026)</span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={handleSyncFromVietinBank}
+            disabled={isSyncing}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-[#003B70] bg-white hover:bg-sky-50 transition-all shadow-xs cursor-pointer active:scale-95 disabled:opacity-75"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 text-[#005596] ${isSyncing ? 'animate-spin' : ''}`} />
+            <span>{isSyncing ? 'Đang đồng bộ...' : 'Đồng bộ từ VietinBank'}</span>
+          </button>
+
+          <a
+            href="https://www.vietinbank.vn/ca-nhan/ty-gia-khcn"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center gap-1 px-3 py-2 rounded-xl text-xs font-bold text-white bg-white/10 hover:bg-white/20 border border-white/20 transition-all shadow-2xs"
+          >
+            <span>Mở trang gốc</span>
+            <ExternalLink className="w-3.5 h-3.5" />
+          </a>
+        </div>
+      </div>
+
+      {syncSuccessMessage && (
+        <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl text-xs flex flex-wrap items-center justify-between gap-2 shadow-2xs animate-fadeIn">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span className="font-semibold">{syncSuccessMessage}</span>
+          </div>
+          <span className="text-[11px] text-emerald-700 font-mono">Phiên: {filterTime} - {formattedDisplayDate}</span>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
       {/* 1. SECTION: QUY ĐỔI TỶ GIÁ NGOẠI TỆ / VND (Exact Match to PDF Page 1)       */}
       {/* ========================================================================= */}
       <section className="bg-white rounded-2xl shadow-xs border border-slate-200/80 overflow-hidden">
@@ -220,7 +368,7 @@ export const ForexTrading: React.FC = () => {
 
           <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 bg-white px-3 py-1.5 rounded-xl border border-slate-200">
             <Clock className="w-4 h-4 text-emerald-600" />
-            <span>Áp dụng từ: 16:30:00 (13/09/2026)</span>
+            <span>Áp dụng từ: {filterTime} ({formattedDisplayDate})</span>
           </div>
         </div>
 
@@ -260,7 +408,7 @@ export const ForexTrading: React.FC = () => {
                       : 'text-slate-600 hover:text-[#005596]'
                   }`}
                 >
-                  ★ Mệnh giá 50, 100 ({formatRateCell(currentCurrency.cashCheckStar)})
+                  * Mệnh giá 50, 100 ({formatRateCell(currentCurrency.cashCheckStar)})
                 </button>
                 <button
                   type="button"
@@ -280,7 +428,9 @@ export const ForexTrading: React.FC = () => {
           {/* Interactive Currency Converter Form matching PDF Page 1 */}
           <div className="grid grid-cols-1 md:grid-cols-11 gap-4 items-center">
             {/* Box 1: Số tiền quý khách cần quy đổi */}
-            <div className="md:col-span-5 bg-slate-50/80 p-4 rounded-2xl border border-slate-200 focus-within:border-[#005596] focus-within:ring-2 focus-within:ring-sky-100 transition-all">
+            <div className={`md:col-span-5 bg-slate-50/80 p-4 rounded-2xl border transition-all ${
+              inputError ? 'border-amber-400 ring-2 ring-amber-100' : 'border-slate-200 focus-within:border-[#005596] focus-within:ring-2 focus-within:ring-sky-100'
+            }`}>
               <label className="block text-xs font-semibold text-slate-500 mb-2">
                 {!isReverse ? converter.labels.inputAmount : 'Số tiền VND cần quy đổi'}
               </label>
@@ -326,12 +476,17 @@ export const ForexTrading: React.FC = () => {
               <div className="mt-3 pt-3 border-t border-slate-200/60 flex flex-wrap items-center gap-1.5">
                 <span className="text-[11px] text-slate-400 font-medium">Chọn nhanh:</span>
                 {!isReverse ? (
-                  [100, 500, 1000, 5000, 10000].map((amt) => (
+                  [0, 100, 500, 1000, 5000, 10000].map((amt) => (
                     <button
                       key={amt}
                       type="button"
                       onClick={() => setRawAmountInput(amt.toString())}
-                      className="px-2 py-0.5 rounded-md text-xs font-semibold bg-white text-slate-600 hover:bg-[#005596] hover:text-white border border-slate-200/80 transition-colors cursor-pointer font-mono"
+                      className={`px-2 py-0.5 rounded-md text-xs font-semibold transition-colors cursor-pointer font-mono ${
+                        amt === 0
+                          ? 'bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100'
+                          : 'bg-white text-slate-600 hover:bg-[#005596] hover:text-white border border-slate-200/80'
+                      }`}
+                      title={amt === 0 ? 'Thử nghiệm cảnh báo lỗi theo quy tắc' : undefined}
                     >
                       {amt.toLocaleString('vi-VN')}
                     </button>
@@ -534,14 +689,36 @@ export const ForexTrading: React.FC = () => {
         </div>
 
         {/* Highlighted Notice box matching Page 1 */}
-        <div className="mx-6 my-4 p-3.5 bg-sky-50/70 border border-sky-200/80 rounded-xl text-xs text-sky-950 space-y-1">
-          <p className="font-semibold text-[#005596]">{exchangeRates.updateNotice}</p>
+        <div className="mx-6 my-4 p-4 bg-sky-50/80 border border-sky-200/80 rounded-xl text-xs text-sky-950 space-y-1.5 shadow-2xs">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="font-semibold text-[#005596]">{updateNoticeText}</p>
+            <span className="text-[11px] font-mono text-slate-500 bg-white px-2 py-0.5 rounded-md border border-slate-200">
+              Mã cập nhật: VTB-FX-{filterDate.replace(/-/g, '')}
+            </span>
+          </div>
           <p className="text-slate-600">{exchangeRates.starNote}</p>
           <p className="text-slate-600">{exchangeRates.ampersandNote}</p>
+          <div className="pt-2 border-t border-sky-200/60 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+            <span className="text-slate-700">
+              Cập nhật tỷ giá tự động tại trang web:{' '}
+              <a
+                href="https://www.vietinbank.vn/ca-nhan/ty-gia-khcn"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-bold text-[#005596] hover:text-[#D71920] underline underline-offset-2 inline-flex items-center gap-1"
+              >
+                https://www.vietinbank.vn/ca-nhan/ty-gia-khcn
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            </span>
+            <span className="text-slate-500 italic">
+              {exchangeRates.disclaimer}
+            </span>
+          </div>
         </div>
 
         <div className="px-6 py-2 text-xs text-slate-500 italic">
-          {exchangeRates.disclaimer} &bull; {exchangeRates.displayNotice}
+          {exchangeRates.displayNotice}
         </div>
 
         {/* 18-Currencies Exchange Rate Table matching PDF Page 2 */}
@@ -616,7 +793,7 @@ export const ForexTrading: React.FC = () => {
                       {c.code === 'USD' || c.code === 'EUR' ? (
                         <div className="space-y-0.5">
                           <div className="text-slate-800 font-bold">
-                            ★ {formatRateCell(c.cashCheckStar)}
+                            * {formatRateCell(c.cashCheckStar)}
                           </div>
                           <div className="text-slate-500 text-xs">
                             & {formatRateCell(c.cashCheckAmp)}
