@@ -113,7 +113,7 @@ export default function App() {
                 : currentModule === 'savings'
                 ? contentData.header.subtitle
                 : currentModule === 'forex'
-                ? 'Tiện ích quy đổi tỷ giá hối đoái ngoại tệ, tra cứu biểu giá mua bán tiền mặt, chuyển khoản và giá vàng niêm yết chính thức tại VietinBank.'
+                ? 'Tiện ích quy đổi tỷ giá hối đoái ngoại tệ, tra cứu biểu giá mua bán tiền mặt và chuyển khoản 18 đồng ngoại tệ niêm yết chính thức tại VietinBank.'
                 : 'Tự động tính toán hạn mức vay tối đa theo tỷ lệ giá trị sổ, số tiền trả nợ định kỳ và lập lịch thu nợ chi tiết theo phương thức gốc đều, lãi giảm dần.'}
             </p>
 

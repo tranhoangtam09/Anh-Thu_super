@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import contentData from '../data/contentData.json';
 import { ForexTransactionType, ForexCurrencyItem } from '../types';
 import {
@@ -7,26 +7,20 @@ import {
   Calendar,
   Clock,
   Search,
-  CheckCircle2,
   AlertCircle,
   TrendingUp,
-  Sparkles,
-  Mail,
-  Send,
-  Building2,
-  HelpCircle,
-  FileSpreadsheet,
   ExternalLink,
+  X,
 } from 'lucide-react';
 
 export const ForexTrading: React.FC = () => {
-  const { forexTrading, media, brand } = contentData;
-  const { converter, exchangeRates, goldRates, newsletter } = forexTrading;
+  const { forexTrading } = contentData;
+  const { converter, exchangeRates } = forexTrading;
 
-  // 1. Converter State
+  // 1. Converter State (Default value '0' matching PDF Page 1)
   const [activeTab, setActiveTab] = useState<ForexTransactionType>('cashBuy');
   const [selectedCurrencyCode, setSelectedCurrencyCode] = useState<string>('USD');
-  const [rawAmountInput, setRawAmountInput] = useState<string>('1000');
+  const [rawAmountInput, setRawAmountInput] = useState<string>('0');
   const [isReverse, setIsReverse] = useState<boolean>(false); // false: FX -> VND, true: VND -> FX
   const [usdEurNoteType, setUsdEurNoteType] = useState<'star' | 'amp'>('star'); // for USD, EUR: big notes (*) vs small notes (&)
 
@@ -36,38 +30,7 @@ export const ForexTrading: React.FC = () => {
   const [filterCurrency, setFilterCurrency] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  // 3. Gold Rates Filter State
-  const [goldFilterDate, setGoldFilterDate] = useState<string>('2026-09-13');
-
-  // 4. Newsletter Form State
-  const [fullName, setFullName] = useState<string>('');
-  const [email, setEmail] = useState<string>('');
-  const [newsletterType, setNewsletterType] = useState<string>('');
-  const [formSubmitted, setFormSubmitted] = useState<boolean>(false);
-  const [formError, setFormError] = useState<string>('');
-
-  // Tự động cập nhật thời gian tỷ giá mới nhất theo hệ thống
-  useEffect(() => {
-    const updateRateTimestamp = () => {
-      const now = new Date();
-      const yyyy = now.getFullYear();
-      const mm = String(now.getMonth() + 1).padStart(2, '0');
-      const dd = String(now.getDate()).padStart(2, '0');
-      const hh = String(now.getHours()).padStart(2, '0');
-      const min = String(now.getMinutes()).padStart(2, '0');
-      const ss = String(now.getSeconds()).padStart(2, '0');
-
-      setFilterDate(`${yyyy}-${mm}-${dd}`);
-      setFilterTime(`${hh}:${min}:${ss}`);
-    };
-
-    updateRateTimestamp();
-    // Tự động cập nhật định kỳ mỗi 60 giây
-    const interval = setInterval(updateRateTimestamp, 60000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Formatted date string for update notices
+  // Formatted date string for update notices (DD/MM/YYYY)
   const formattedDisplayDate = useMemo(() => {
     if (!filterDate) return '13/09/2026';
     const parts = filterDate.split('-');
@@ -91,7 +54,7 @@ export const ForexTrading: React.FC = () => {
     );
   }, [selectedCurrencyCode, exchangeRates.currencies]);
 
-  // Determine the effective exchange rate based on active tab and currency notes
+  // Determine effective exchange rate based on active tab and currency note type
   const effectiveRate = useMemo(() => {
     if (!currentCurrency) return 1;
 
@@ -115,11 +78,12 @@ export const ForexTrading: React.FC = () => {
     return currentCurrency.transfer || 0;
   }, [activeTab, currentCurrency, usdEurNoteType]);
 
-  // Validation according to rules in PDF:
+  // Validation according to rules in PDF Page 1:
   // - Bắt buộc nhập
   // - Phải là số lớn hơn 0
   // - Không cho phép nhập ký tự chữ
   // - Nếu nhỏ hơn mức tối thiểu, hiển thị cảnh báo
+  // Thông báo lỗi gợi ý: “Vui lòng nhập số quy đổi hợp lệ.”
   const numericAmount = useMemo(() => {
     const cleanStr = rawAmountInput.replace(/[^\d.]/g, '');
     const val = parseFloat(cleanStr);
@@ -128,48 +92,50 @@ export const ForexTrading: React.FC = () => {
 
   const inputError = useMemo(() => {
     if (rawAmountInput.trim() === '') {
-      return converter.labels.errorRequired;
+      return 'Vui lòng nhập số quy đổi hợp lệ.';
     }
     if (numericAmount <= 0) {
-      return converter.labels.errorGreaterThanZero;
+      return 'Vui lòng nhập số quy đổi hợp lệ.';
     }
     return '';
-  }, [rawAmountInput, numericAmount, converter.labels]);
+  }, [rawAmountInput, numericAmount]);
 
   // Calculate converted result
   const calculatedResult = useMemo(() => {
-    if (numericAmount <= 0 || effectiveRate <= 0) return 0;
-
+    if (numericAmount <= 0 || !effectiveRate || effectiveRate <= 0) return 0;
     if (!isReverse) {
-      // FX -> VND
+      // Ngoại tệ -> VND
       return numericAmount * effectiveRate;
     } else {
-      // VND -> FX
+      // VND -> Ngoại tệ
       return numericAmount / effectiveRate;
     }
   }, [numericAmount, effectiveRate, isReverse]);
 
-  // Sanitize input: allow only digits and decimal point
+  // Handle amount input change: Only numeric characters & decimal dot allowed
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
-    // Allow digits and only one dot or comma
-    const sanitized = val.replace(/[^0-9.,]/g, '').replace(/,/g, '.');
-    // Prevent multiple dots
-    const parts = sanitized.split('.');
-    if (parts.length > 2) return;
-    setRawAmountInput(sanitized);
+    // Allow empty or strictly numeric with optional single decimal point
+    if (val === '' || /^[0-9]*\.?[0-9]*$/.test(val)) {
+      setRawAmountInput(val);
+    }
   };
 
-  // Filtered currency list for table
+  // Filter currencies for the table
   const filteredCurrencies = useMemo(() => {
-    return (exchangeRates.currencies as ForexCurrencyItem[]).filter((item) => {
-      const matchFilter = filterCurrency === 'all' || item.code === filterCurrency;
-      const matchSearch =
-        item.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.name.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchFilter && matchSearch;
+    return (exchangeRates.currencies as ForexCurrencyItem[]).filter((c) => {
+      if (filterCurrency !== 'all' && c.code !== filterCurrency) {
+        return false;
+      }
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const matchCode = c.code.toLowerCase().includes(q);
+        const matchName = c.name.toLowerCase().includes(q);
+        if (!matchCode && !matchName) return false;
+      }
+      return true;
     });
-  }, [exchangeRates.currencies, filterCurrency, searchQuery]);
+  }, [filterCurrency, searchQuery, exchangeRates.currencies]);
 
   // Handle Export / Download table to CSV
   const handleDownloadRates = () => {
@@ -185,10 +151,10 @@ export const ForexTrading: React.FC = () => {
     const rows = (exchangeRates.currencies as ForexCurrencyItem[]).map((c) => [
       c.code,
       c.name,
-      c.cashCheckStar || c.cashCheck || '-',
-      c.cashCheckAmp || '-',
-      c.transfer || '-',
-      c.sell || '-',
+      c.code === 'USD' || c.code === 'EUR' ? c.cashCheckStar || '' : c.cashCheck || '',
+      c.code === 'USD' || c.code === 'EUR' ? c.cashCheckAmp || '' : '',
+      c.transfer || '',
+      c.sell || '',
     ]);
 
     const csvContent =
@@ -204,22 +170,7 @@ export const ForexTrading: React.FC = () => {
     document.body.removeChild(link);
   };
 
-  // Handle newsletter form submit
-  const handleNewsletterSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!fullName.trim() || !email.trim() || !newsletterType) {
-      setFormError('Vui lòng điền đầy đủ các trường thông tin bắt buộc (*).');
-      return;
-    }
-    if (!email.includes('@') || !email.includes('.')) {
-      setFormError('Vui lòng nhập địa chỉ email hợp lệ.');
-      return;
-    }
-    setFormError('');
-    setFormSubmitted(true);
-  };
-
-  // Format number helper
+  // Format numbers to match Vietnamese banking standards
   const formatVND = (num: number) => {
     return new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 }).format(num);
   };
@@ -230,397 +181,389 @@ export const ForexTrading: React.FC = () => {
 
   const formatRateCell = (val?: number | null) => {
     if (val === undefined || val === null) return '-';
+    const hasDecimals = val % 1 !== 0;
     return new Intl.NumberFormat('vi-VN', {
-      minimumFractionDigits: val % 1 === 0 ? 0 : 2,
+      minimumFractionDigits: hasDecimals ? 2 : 0,
       maximumFractionDigits: 2,
     }).format(val);
   };
 
   return (
-    <div className="space-y-10 animate-fadeIn text-slate-800">
+    <div className="space-y-8 animate-fadeIn text-slate-800">
       {/* ========================================================================= */}
-      {/* 1. SECTION: QUY ĐỔI TỶ GIÁ NGOẠI TỆ / VND (Exact Match to PDF Page 1)       */}
+      {/* 1. SECTION: QUY ĐỔI TỶ GIÁ NGOẠI TỆ/VND (Trang 1 PDF)                     */}
       {/* ========================================================================= */}
-      <section className="bg-white rounded-2xl shadow-xs border border-slate-200/80 overflow-hidden">
-        {/* Card Header */}
-        <div className="px-6 pt-6 pb-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center md:justify-between gap-3 bg-gradient-to-r from-slate-50 to-white">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="p-1.5 rounded-lg bg-[#005596]/10 text-[#005596]">
-                <ArrowLeftRight className="w-5 h-5" />
-              </span>
-              <h3 className="text-xl font-extrabold text-[#003B70] tracking-tight">
-                {converter.title}
-              </h3>
+      <section className="bg-white rounded-2xl shadow-xs border border-slate-200/80 p-6 sm:p-8 space-y-6">
+        {/* Main Title */}
+        <div>
+          <h2 className="text-xl sm:text-2xl font-extrabold text-[#003B70] tracking-tight">
+            {converter.title}
+          </h2>
+        </div>
+
+        {/* Transaction Mode Tabs matching Page 1 */}
+        <div className="inline-flex items-center gap-1.5 p-1 bg-slate-100/90 rounded-xl">
+          {converter.tabs.map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id as ForexTransactionType)}
+                className={`py-2 px-4 sm:px-5 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                  isActive
+                    ? 'bg-[#D71920] text-white shadow-xs'
+                    : 'text-slate-600 hover:text-[#005596] hover:bg-white/80'
+                }`}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* If USD or EUR in Cash Buy mode: Mệnh giá 50, 100 (*) vs < 50 (&) */}
+        {activeTab === 'cashBuy' && (selectedCurrencyCode === 'USD' || selectedCurrencyCode === 'EUR') && (
+          <div className="flex flex-wrap items-center gap-2 p-3 bg-sky-50/70 border border-sky-100 rounded-xl text-xs text-slate-700">
+            <span className="font-semibold text-[#005596]">Mệnh giá tiền mặt:</span>
+            <div className="inline-flex rounded-lg border border-sky-200 bg-white p-0.5">
+              <button
+                type="button"
+                onClick={() => setUsdEurNoteType('star')}
+                className={`px-3 py-1 rounded-md text-xs font-bold transition-colors cursor-pointer ${
+                  usdEurNoteType === 'star'
+                    ? 'bg-[#005596] text-white'
+                    : 'text-slate-600 hover:text-[#005596]'
+                }`}
+              >
+                * Mệnh giá 50, 100 ({formatRateCell(currentCurrency.cashCheckStar)})
+              </button>
+              <button
+                type="button"
+                onClick={() => setUsdEurNoteType('amp')}
+                className={`px-3 py-1 rounded-md text-xs font-bold transition-colors cursor-pointer ${
+                  usdEurNoteType === 'amp'
+                    ? 'bg-[#005596] text-white'
+                    : 'text-slate-600 hover:text-[#005596]'
+                }`}
+              >
+                & Mệnh giá &lt; 50 ({formatRateCell(currentCurrency.cashCheckAmp)})
+              </button>
             </div>
-            <p className="text-xs text-slate-500 mt-1">{converter.subtitle}</p>
+          </div>
+        )}
+
+        {/* 2-Column Converter Boxes matching PDF Page 1 */}
+        <div className="grid grid-cols-1 md:grid-cols-11 gap-4 items-center">
+          {/* Box 1: Số tiền quý khách cần quy đổi */}
+          <div
+            className={`md:col-span-5 bg-slate-50/90 p-4 rounded-xl border transition-all ${
+              inputError
+                ? 'border-amber-400 ring-2 ring-amber-100'
+                : 'border-slate-200 focus-within:border-[#005596] focus-within:ring-2 focus-within:ring-sky-100'
+            }`}
+          >
+            <label className="block text-xs font-medium text-slate-500 mb-2">
+              {!isReverse ? converter.labels.inputAmount : 'Số tiền VND cần quy đổi'}
+            </label>
+
+            <div className="flex items-center justify-between gap-3">
+              <input
+                type="text"
+                inputMode="decimal"
+                value={rawAmountInput}
+                onChange={handleAmountChange}
+                placeholder="0"
+                className="w-full bg-transparent text-2xl sm:text-3xl font-bold text-slate-800 focus:outline-none font-mono"
+              />
+
+              {!isReverse ? (
+                <div className="relative shrink-0">
+                  <select
+                    value={selectedCurrencyCode}
+                    onChange={(e) => setSelectedCurrencyCode(e.target.value)}
+                    aria-label="Chọn loại ngoại tệ quy đổi"
+                    className="appearance-none bg-white font-bold text-sm text-slate-800 py-2 pl-3 pr-8 rounded-lg border border-slate-200 shadow-2xs hover:border-[#005596] focus:outline-none cursor-pointer"
+                  >
+                    {(exchangeRates.currencies as ForexCurrencyItem[]).map((c) => (
+                      <option key={c.code} value={c.code}>
+                        {c.flag} {c.code}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500 text-xs">
+                    ▼
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 bg-white px-3 py-2 rounded-lg border border-slate-200 font-bold text-sm text-slate-800 shadow-2xs shrink-0">
+                  <span>🇻🇳</span>
+                  <span>VND</span>
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 bg-white px-3 py-1.5 rounded-xl border border-slate-200">
-            <Clock className="w-4 h-4 text-emerald-600" />
-            <span>Áp dụng từ: {filterTime} ({formattedDisplayDate})</span>
+          {/* Direction Swap Button */}
+          <div className="md:col-span-1 flex justify-center">
+            <button
+              type="button"
+              onClick={() => setIsReverse((prev) => !prev)}
+              title="Đổi chiều quy đổi (Ngoại tệ ⇄ VND)"
+              className="w-10 h-10 rounded-full bg-slate-100 hover:bg-[#005596] text-slate-600 hover:text-white flex items-center justify-center transition-all shadow-xs border border-slate-200 cursor-pointer active:scale-95"
+            >
+              <ArrowLeftRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Box 2: Số tiền quy đổi */}
+          <div className="md:col-span-5 bg-sky-50/60 p-4 rounded-xl border border-sky-200/80">
+            <label className="block text-xs font-medium text-sky-900 mb-2">
+              {converter.labels.outputAmount}
+            </label>
+
+            <div className="flex items-center justify-between gap-3">
+              <div className="w-full text-2xl sm:text-3xl font-bold text-[#005596] font-mono tracking-tight truncate">
+                {!isReverse ? formatVND(calculatedResult) : formatFX(calculatedResult)}
+              </div>
+
+              {!isReverse ? (
+                <div className="flex items-center gap-1.5 bg-white px-3 py-2 rounded-lg border border-sky-200 font-bold text-sm text-slate-800 shadow-2xs shrink-0">
+                  <span>🇻🇳</span>
+                  <span>VND</span>
+                </div>
+              ) : (
+                <div className="relative shrink-0">
+                  <select
+                    value={selectedCurrencyCode}
+                    onChange={(e) => setSelectedCurrencyCode(e.target.value)}
+                    aria-label="Chọn loại ngoại tệ nhận sau quy đổi"
+                    className="appearance-none bg-white font-bold text-sm text-slate-800 py-2 pl-3 pr-8 rounded-lg border border-sky-200 shadow-2xs hover:border-[#005596] focus:outline-none cursor-pointer"
+                  >
+                    {(exchangeRates.currencies as ForexCurrencyItem[]).map((c) => (
+                      <option key={c.code} value={c.code}>
+                        {c.flag} {c.code}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500 text-xs">
+                    ▼
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        <div className="p-6 space-y-6">
-          {/* 3 Transaction Tabs matching Page 1 */}
-          <div className="flex items-center p-1.5 bg-slate-100 rounded-xl max-w-lg">
-            {converter.tabs.map((tab) => {
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setActiveTab(tab.id as ForexTransactionType)}
-                  className={`flex-1 py-2.5 px-3 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer text-center ${
-                    isActive
-                      ? 'bg-gradient-to-r from-[#D71920] to-[#B31217] text-white shadow-xs'
-                      : 'text-slate-600 hover:text-[#005596] hover:bg-white/60'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              );
-            })}
+        {/* Quick helper buttons */}
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+          <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
+            <span className="text-[11px] text-slate-400">Chọn nhanh:</span>
+            {!isReverse
+              ? [0, 100, 500, 1000, 5000].map((amt) => (
+                  <button
+                    key={amt}
+                    type="button"
+                    onClick={() => setRawAmountInput(amt.toString())}
+                    className="px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-100 hover:bg-[#005596] hover:text-white transition-colors cursor-pointer font-mono text-slate-700"
+                  >
+                    {amt.toLocaleString('vi-VN')}
+                  </button>
+                ))
+              : [10000000, 25000000, 50000000, 100000000].map((amt) => (
+                  <button
+                    key={amt}
+                    type="button"
+                    onClick={() => setRawAmountInput(amt.toString())}
+                    className="px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-100 hover:bg-[#005596] hover:text-white transition-colors cursor-pointer font-mono text-slate-700"
+                  >
+                    {(amt / 1000000).toFixed(0)}Tr
+                  </button>
+                ))}
           </div>
 
-          {/* If USD or EUR in Cash Buy mode: Sub-selector for Big notes (*) vs Small notes (&) */}
-          {activeTab === 'cashBuy' && (selectedCurrencyCode === 'USD' || selectedCurrencyCode === 'EUR') && (
-            <div className="flex flex-wrap items-center gap-2 p-3 bg-sky-50/70 border border-sky-100 rounded-xl text-xs text-slate-700">
-              <span className="font-semibold text-[#005596]">Phân loại mệnh giá tiền mặt:</span>
-              <div className="inline-flex rounded-lg border border-sky-200 bg-white p-0.5">
-                <button
-                  type="button"
-                  onClick={() => setUsdEurNoteType('star')}
-                  className={`px-3 py-1 rounded-md text-xs font-bold transition-colors cursor-pointer ${
-                    usdEurNoteType === 'star'
-                      ? 'bg-[#005596] text-white'
-                      : 'text-slate-600 hover:text-[#005596]'
-                  }`}
-                >
-                  * Mệnh giá 50, 100 ({formatRateCell(currentCurrency.cashCheckStar)})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setUsdEurNoteType('amp')}
-                  className={`px-3 py-1 rounded-md text-xs font-bold transition-colors cursor-pointer ${
-                    usdEurNoteType === 'amp'
-                      ? 'bg-[#005596] text-white'
-                      : 'text-slate-600 hover:text-[#005596]'
-                  }`}
-                >
-                  & Mệnh giá &lt; 50 ({formatRateCell(currentCurrency.cashCheckAmp)})
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Interactive Currency Converter Form matching PDF Page 1 */}
-          <div className="grid grid-cols-1 md:grid-cols-11 gap-4 items-center">
-            {/* Box 1: Số tiền quý khách cần quy đổi */}
-            <div className={`md:col-span-5 bg-slate-50/80 p-4 rounded-2xl border transition-all ${
-              inputError ? 'border-amber-400 ring-2 ring-amber-100' : 'border-slate-200 focus-within:border-[#005596] focus-within:ring-2 focus-within:ring-sky-100'
-            }`}>
-              <label className="block text-xs font-semibold text-slate-500 mb-2">
-                {!isReverse ? converter.labels.inputAmount : 'Số tiền VND cần quy đổi'}
-              </label>
-
-              <div className="flex items-center justify-between gap-3">
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  value={rawAmountInput}
-                  onChange={handleAmountChange}
-                  placeholder="0"
-                  className="w-full bg-transparent text-2xl sm:text-3xl font-extrabold text-slate-800 focus:outline-none font-mono"
-                />
-
-                {/* Currency selector */}
-                {!isReverse ? (
-                  <div className="relative shrink-0">
-                    <select
-                      value={selectedCurrencyCode}
-                      onChange={(e) => setSelectedCurrencyCode(e.target.value)}
-                      aria-label="Chọn loại ngoại tệ quy đổi"
-                      className="appearance-none bg-white font-bold text-sm text-slate-800 py-2 pl-3 pr-8 rounded-xl border border-slate-200 shadow-2xs hover:border-[#005596] focus:outline-none focus:ring-2 focus:ring-sky-100 cursor-pointer"
-                    >
-                      {(exchangeRates.currencies as ForexCurrencyItem[]).map((c) => (
-                        <option key={c.code} value={c.code}>
-                          {c.flag} {c.code}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
-                      ▼
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1.5 bg-white px-3 py-2 rounded-xl border border-slate-200 font-bold text-sm text-slate-800 shadow-2xs">
-                    <span>🇻🇳</span>
-                    <span>VND</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Quick Amount Chips */}
-              <div className="mt-3 pt-3 border-t border-slate-200/60 flex flex-wrap items-center gap-1.5">
-                <span className="text-[11px] text-slate-400 font-medium">Chọn nhanh:</span>
-                {!isReverse ? (
-                  [0, 100, 500, 1000, 5000, 10000].map((amt) => (
-                    <button
-                      key={amt}
-                      type="button"
-                      onClick={() => setRawAmountInput(amt.toString())}
-                      className={`px-2 py-0.5 rounded-md text-xs font-semibold transition-colors cursor-pointer font-mono ${
-                        amt === 0
-                          ? 'bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100'
-                          : 'bg-white text-slate-600 hover:bg-[#005596] hover:text-white border border-slate-200/80'
-                      }`}
-                      title={amt === 0 ? 'Thử nghiệm cảnh báo lỗi theo quy tắc' : undefined}
-                    >
-                      {amt.toLocaleString('vi-VN')}
-                    </button>
-                  ))
-                ) : (
-                  [10000000, 25000000, 50000000, 100000000].map((amt) => (
-                    <button
-                      key={amt}
-                      type="button"
-                      onClick={() => setRawAmountInput(amt.toString())}
-                      className="px-2 py-0.5 rounded-md text-xs font-semibold bg-white text-slate-600 hover:bg-[#005596] hover:text-white border border-slate-200/80 transition-colors cursor-pointer font-mono"
-                    >
-                      {(amt / 1000000).toFixed(0)}Tr
-                    </button>
-                  ))
-                )}
-              </div>
-            </div>
-
-            {/* Switch / Swap Direction Button */}
-            <div className="md:col-span-1 flex justify-center">
-              <button
-                type="button"
-                onClick={() => setIsReverse((prev) => !prev)}
-                title="Đổi chiều quy đổi (Ngoại tệ ⇄ VND)"
-                className="w-10 h-10 rounded-full bg-slate-100 hover:bg-[#005596] text-slate-600 hover:text-white flex items-center justify-center transition-all shadow-xs border border-slate-200 cursor-pointer active:scale-95"
-              >
-                <ArrowLeftRight className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Box 2: Số tiền quy đổi (Result) */}
-            <div className="md:col-span-5 bg-sky-50/60 p-4 rounded-2xl border border-sky-200/80">
-              <label className="block text-xs font-semibold text-sky-800 mb-2">
-                {converter.labels.outputAmount}
-              </label>
-
-              <div className="flex items-center justify-between gap-3">
-                <div className="w-full text-2xl sm:text-3xl font-extrabold text-[#005596] font-mono tracking-tight truncate">
-                  {!isReverse
-                    ? formatVND(calculatedResult)
-                    : formatFX(calculatedResult)}
-                </div>
-
-                {/* Target currency badge */}
-                {!isReverse ? (
-                  <div className="flex items-center gap-1.5 bg-white px-3 py-2 rounded-xl border border-sky-200 font-bold text-sm text-slate-800 shadow-2xs shrink-0">
-                    <span>🇻🇳</span>
-                    <span>VND</span>
-                  </div>
-                ) : (
-                  <div className="relative shrink-0">
-                    <select
-                      value={selectedCurrencyCode}
-                      onChange={(e) => setSelectedCurrencyCode(e.target.value)}
-                      aria-label="Chọn loại ngoại tệ nhận sau quy đổi"
-                      className="appearance-none bg-white font-bold text-sm text-slate-800 py-2 pl-3 pr-8 rounded-xl border border-sky-200 shadow-2xs hover:border-[#005596] focus:outline-none focus:ring-2 focus:ring-sky-100 cursor-pointer"
-                    >
-                      {(exchangeRates.currencies as ForexCurrencyItem[]).map((c) => (
-                        <option key={c.code} value={c.code}>
-                          {c.flag} {c.code}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
-                      ▼
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Applied Rate and Direction Info */}
-              <div className="mt-3 pt-3 border-t border-sky-200/60 flex items-center justify-between text-xs text-sky-900">
-                <span>
-                  Tỷ giá:{' '}
-                  <strong>
-                    1 {currentCurrency.code} = {formatRateCell(effectiveRate)} VND
-                  </strong>
-                </span>
-                <span className="text-[11px] text-slate-500">
-                  {activeTab === 'cashBuy'
-                    ? 'Mua tiền mặt'
-                    : activeTab === 'transferBuy'
-                    ? 'Mua chuyển khoản'
-                    : 'Bán ngoại tệ'}
-                </span>
-              </div>
-            </div>
+          <div className="text-xs text-slate-500">
+            Tỷ giá áp dụng:{' '}
+            <strong className="text-[#005596]">
+              1 {currentCurrency.code} = {formatRateCell(effectiveRate)} VND
+            </strong>
           </div>
+        </div>
 
-          {/* Validation Notice Box (Nguyên tắc) */}
-          {inputError && (
-            <div className="flex items-center gap-2 p-3 bg-amber-50 text-amber-800 border border-amber-200 rounded-xl text-xs font-semibold">
-              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-              <span>{inputError}</span>
-            </div>
-          )}
+        {/* Validation Alert Box if invalid */}
+        {inputError && (
+          <div className="flex items-center gap-2 p-3 bg-amber-50 text-amber-800 border border-amber-200 rounded-xl text-xs font-semibold">
+            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+            <span>{inputError}</span>
+          </div>
+        )}
+
+        {/* ===================================================================== */}
+        {/* NGUYÊN TẮC: QUY ĐỔI SỐ TIỀN (Chính xác theo mô tả Trang 1 PDF)       */}
+        {/* ===================================================================== */}
+        <div className="p-4 sm:p-5 bg-slate-50 rounded-xl border border-slate-200 text-xs sm:text-sm text-slate-700 space-y-2">
+          <p className="font-bold text-[#003B70] text-sm sm:text-base">Nguyên tắc:</p>
+          <p className="font-semibold text-slate-800">Số tiền quy đổi</p>
+          <ul className="list-disc list-inside space-y-1 text-slate-600 ml-1">
+            <li>Bắt buộc nhập</li>
+            <li>Phải là số lớn hơn 0</li>
+            <li>Không cho phép nhập ký tự chữ</li>
+            <li>Nếu nhỏ hơn mức tối thiểu, hiển thị cảnh báo</li>
+          </ul>
+          <div className="pt-2 border-t border-slate-200/80">
+            <p className="font-medium text-slate-600">
+              Thông báo lỗi gợi ý:{' '}
+              <span className="font-semibold text-rose-600">
+                “Vui lòng nhập số quy đổi hợp lệ.”
+              </span>
+            </p>
+          </div>
         </div>
       </section>
 
       {/* ========================================================================= */}
-      {/* 2. SECTION: BẢNG TỶ GIÁ NGOẠI TỆ (Exact Match to PDF Page 1 & Page 2)      */}
+      {/* 2. SECTION: TỶ GIÁ (Trang 1 & Trang 2 PDF)                                 */}
       {/* ========================================================================= */}
-      <section className="bg-white rounded-2xl shadow-xs border border-slate-200/80 overflow-hidden">
-        {/* Section Header with Download Button */}
-        <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <span className="p-2 rounded-xl bg-[#005596] text-white">
-              <TrendingUp className="w-5 h-5" />
-            </span>
-            <div>
-              <h3 className="text-xl font-extrabold text-[#003B70] tracking-tight">
-                {exchangeRates.title}
-              </h3>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Biểu niêm yết tỷ giá các đồng tiền chủ chốt tại VietinBank
-              </p>
-            </div>
-          </div>
+      <section className="bg-white rounded-2xl shadow-xs border border-slate-200/80 p-6 sm:p-8 space-y-6">
+        {/* Section Header: "Thời gian cập nhật", Title "Tỷ giá", Download Button */}
+        <div>
+          <span className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
+            Thời gian cập nhật
+          </span>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <h3 className="text-2xl font-extrabold text-[#003B70] tracking-tight">
+              {exchangeRates.title}
+            </h3>
 
-          {/* Download Rates button matching PDF */}
-          <button
-            type="button"
-            onClick={handleDownloadRates}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm text-[#005596] bg-sky-50 hover:bg-sky-100 border border-sky-200 transition-colors shadow-2xs cursor-pointer self-start md:self-auto"
-          >
-            <Download className="w-4 h-4 text-[#005596]" />
-            <span>{exchangeRates.downloadButton}</span>
-          </button>
+            {/* Tải xuống bảng tỷ giá */}
+            <button
+              type="button"
+              onClick={handleDownloadRates}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-[#005596] hover:text-[#003B70] hover:bg-sky-50 transition-colors cursor-pointer self-start sm:self-auto"
+            >
+              <Download className="w-4 h-4 text-[#005596]" />
+              <span>{exchangeRates.downloadButton}</span>
+            </button>
+          </div>
         </div>
 
-        {/* Filter bar: Ngày cập nhật, Thời điểm cập nhật, Ngoại tệ matching Page 1 */}
-        <div className="p-6 bg-slate-50/60 border-b border-slate-100 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+        {/* Filters: Ngày cập nhật, Thời điểm cập nhật, Ngoại tệ matching PDF Page 1 */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
           {/* Ngày cập nhật */}
           <div>
-            <label className="block font-semibold text-slate-600 mb-1.5">
+            <label className="block font-medium text-slate-600 mb-1.5">
               {exchangeRates.filterDate}
             </label>
-            <div className="relative">
+            <div className="relative flex items-center">
               <input
-                type="date"
-                value={filterDate}
-                onChange={(e) => setFilterDate(e.target.value)}
-                className="w-full bg-white px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#005596]/20 font-medium text-slate-700"
+                type="text"
+                value={formattedDisplayDate}
+                readOnly
+                className="w-full bg-slate-50/80 px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-800 font-medium focus:outline-none"
               />
+              <button
+                type="button"
+                onClick={() => setFilterDate('2026-09-13')}
+                title="Khôi phục ngày chuẩn"
+                className="absolute right-2.5 p-1 text-slate-400 hover:text-slate-700 cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
 
           {/* Thời điểm cập nhật */}
           <div>
-            <label className="block font-semibold text-slate-600 mb-1.5">
+            <label className="block font-medium text-slate-600 mb-1.5">
               {exchangeRates.filterTime}
             </label>
-            <select
-              value={filterTime}
-              onChange={(e) => setFilterTime(e.target.value)}
-              className="w-full bg-white px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#005596]/20 font-medium text-slate-700 cursor-pointer"
-            >
-              <option value="16:30:00">16:30:00 (Cuối ngày)</option>
-              <option value="11:00:00">11:00:00 (Buổi trưa)</option>
-              <option value="08:30:00">08:30:00 (Đầu ngày)</option>
-            </select>
+            <div className="relative">
+              <select
+                value={filterTime}
+                onChange={(e) => setFilterTime(e.target.value)}
+                className="appearance-none w-full bg-slate-50/80 px-3.5 py-2.5 pr-8 rounded-xl border border-slate-200 text-slate-800 font-medium focus:outline-none focus:border-[#005596] cursor-pointer"
+              >
+                <option value="16:30:00">16:30:00</option>
+                <option value="11:00:00">11:00:00</option>
+                <option value="08:30:00">08:30:00</option>
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-slate-500 text-xs">
+                ▼
+              </div>
+            </div>
           </div>
 
-          {/* Ngoại tệ dropdown filter */}
+          {/* Ngoại tệ */}
           <div>
-            <label className="block font-semibold text-slate-600 mb-1.5">
+            <label className="block font-medium text-slate-600 mb-1.5">
               {exchangeRates.filterCurrency}
             </label>
-            <select
-              value={filterCurrency}
-              onChange={(e) => setFilterCurrency(e.target.value)}
-              className="w-full bg-white px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#005596]/20 font-medium text-slate-700 cursor-pointer"
-            >
-              <option value="all">{exchangeRates.allCurrencies}</option>
-              {(exchangeRates.currencies as ForexCurrencyItem[]).map((c) => (
-                <option key={c.code} value={c.code}>
-                  {c.code} - {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Search bar */}
-          <div>
-            <label className="block font-semibold text-slate-600 mb-1.5">
-              Tìm kiếm nhanh
-            </label>
             <div className="relative">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Nhập mã ngoại tệ hoặc tên..."
-                className="w-full bg-white pl-9 pr-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#005596]/20 font-medium text-slate-700"
-              />
+              <select
+                value={filterCurrency}
+                onChange={(e) => setFilterCurrency(e.target.value)}
+                className="appearance-none w-full bg-slate-50/80 px-3.5 py-2.5 pr-8 rounded-xl border border-slate-200 text-slate-800 font-medium focus:outline-none focus:border-[#005596] cursor-pointer"
+              >
+                <option value="all">{exchangeRates.allCurrencies}</option>
+                {(exchangeRates.currencies as ForexCurrencyItem[]).map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.code} - {c.name}
+                  </option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-slate-500 text-xs">
+                ▼
+              </div>
             </div>
           </div>
         </div>
 
         {/* Highlighted Notice box matching Page 1 */}
-        <div className="mx-6 my-4 p-4 bg-sky-50/80 border border-sky-200/80 rounded-xl text-xs text-sky-950 space-y-1.5 shadow-2xs">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="font-semibold text-[#005596]">{updateNoticeText}</p>
-            <span className="text-[11px] font-mono text-slate-500 bg-white px-2 py-0.5 rounded-md border border-slate-200">
-              Mã cập nhật: VTB-FX-{filterDate.replace(/-/g, '')}
-            </span>
-          </div>
+        <div className="p-4 bg-sky-50/80 border border-sky-200/80 rounded-xl text-xs text-sky-950 space-y-1 shadow-2xs">
+          <p className="font-semibold text-[#005596]">{updateNoticeText}</p>
           <p className="text-slate-600">{exchangeRates.starNote}</p>
           <p className="text-slate-600">{exchangeRates.ampersandNote}</p>
-          <div className="pt-2 border-t border-sky-200/60 flex flex-wrap items-center justify-between gap-2 text-[11px]">
-            <span className="text-slate-700">
-              Cập nhật tỷ giá tự động tại trang web:{' '}
-              <a
-                href="https://www.vietinbank.vn/ca-nhan/ty-gia-khcn"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-bold text-[#005596] hover:text-[#D71920] underline underline-offset-2 inline-flex items-center gap-1"
-              >
-                https://www.vietinbank.vn/ca-nhan/ty-gia-khcn
-                <ExternalLink className="w-3 h-3" />
-              </a>
-            </span>
-            <span className="text-slate-500 italic">
-              {exchangeRates.disclaimer}
-            </span>
+        </div>
+
+        {/* Text lines matching Page 1 */}
+        <div className="space-y-1 text-xs text-slate-600">
+          <p>
+            Ngày Cập nhật, thời điểm cập nhật: là ngày tỷ giá mặc nhiên tự động tại trang wed:{' '}
+            <a
+              href="https://www.vietinbank.vn/ca-nhan/ty-gia-khcn"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#005596] hover:text-[#D71920] underline underline-offset-2 font-medium inline-flex items-center gap-1"
+            >
+              https://www.vietinbank.vn/ca-nhan/ty-gia-khcn
+              <ExternalLink className="w-3 h-3" />
+            </a>
+          </p>
+          <p className="italic">{exchangeRates.disclaimer}</p>
+          <p className="pt-2 text-slate-700 font-medium">{exchangeRates.displayNotice}</p>
+        </div>
+
+        {/* Quick Search filter bar */}
+        <div className="flex items-center justify-between gap-4">
+          <div className="relative max-w-sm w-full">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Tìm theo mã hoặc tên ngoại tệ..."
+              className="w-full bg-slate-50/80 pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-700 focus:outline-none focus:border-[#005596]"
+            />
           </div>
         </div>
 
-        <div className="px-6 py-2 text-xs text-slate-500 italic">
-          {exchangeRates.displayNotice}
-        </div>
-
-        {/* 18-Currencies Exchange Rate Table matching PDF Page 2 */}
-        <div className="overflow-x-auto">
+        {/* 18-Currencies Table (Trang 2 PDF) */}
+        <div className="overflow-x-auto border border-slate-200 rounded-xl shadow-2xs">
           <table className="w-full text-left border-collapse">
             <thead>
-              {/* Row 1: Group headers */}
-              <tr className="bg-[#003B70] text-white text-xs uppercase tracking-wider font-bold">
-                <th
-                  rowSpan={2}
-                  className="py-3.5 px-4 sm:px-6 border-r border-[#004e92]/40"
-                >
+              {/* Row 1: Main Headers */}
+              <tr className="bg-[#003B70] text-white text-xs font-bold uppercase tracking-wider">
+                <th rowSpan={2} className="py-3.5 px-4 sm:px-6 border-r border-[#004e92]/40">
                   {exchangeRates.columns.currency}
                 </th>
                 <th
@@ -633,7 +576,7 @@ export const ForexTrading: React.FC = () => {
                   {exchangeRates.columns.sellingRate}
                 </th>
               </tr>
-              {/* Row 2: Sub-headers */}
+              {/* Row 2: Sub Headers */}
               <tr className="bg-[#004785] text-sky-100 text-[11px] uppercase font-semibold">
                 <th className="py-2 px-4 text-center border-r border-[#005596]/40">
                   {exchangeRates.columns.cashAndCheck}
@@ -650,13 +593,7 @@ export const ForexTrading: React.FC = () => {
                 return (
                   <tr
                     key={c.code}
-                    onClick={() => {
-                      setSelectedCurrencyCode(c.code);
-                      const converterElem = document.getElementById('converter-top');
-                      if (converterElem) {
-                        converterElem.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                      }
-                    }}
+                    onClick={() => setSelectedCurrencyCode(c.code)}
                     className={`transition-colors cursor-pointer hover:bg-sky-50/60 ${
                       isSelected
                         ? 'bg-sky-50/80 font-medium'
@@ -665,8 +602,8 @@ export const ForexTrading: React.FC = () => {
                         : 'bg-slate-50/40'
                     }`}
                   >
-                    {/* Currency Code & Flag */}
-                    <td className="py-3.5 px-4 sm:px-6 border-r border-slate-100 font-bold text-slate-800">
+                    {/* Currency */}
+                    <td className="py-3 px-4 sm:px-6 border-r border-slate-100 font-bold text-slate-800">
                       <div className="flex items-center gap-2.5">
                         <span className="text-lg">{c.flag}</span>
                         <div>
@@ -678,8 +615,8 @@ export const ForexTrading: React.FC = () => {
                       </div>
                     </td>
 
-                    {/* Cash & Check Buying Rate */}
-                    <td className="py-3.5 px-4 text-center border-r border-slate-100 font-mono">
+                    {/* Cash & Check */}
+                    <td className="py-3 px-4 text-center border-r border-slate-100 font-mono">
                       {c.code === 'USD' || c.code === 'EUR' ? (
                         <div className="space-y-0.5">
                           <div className="text-slate-800 font-bold">
@@ -690,19 +627,17 @@ export const ForexTrading: React.FC = () => {
                           </div>
                         </div>
                       ) : (
-                        <span className="text-slate-800">
-                          {formatRateCell(c.cashCheck)}
-                        </span>
+                        <span className="text-slate-800">{formatRateCell(c.cashCheck)}</span>
                       )}
                     </td>
 
-                    {/* Transfer Buying Rate */}
-                    <td className="py-3.5 px-4 text-center border-r border-slate-100 font-mono font-semibold text-slate-800">
+                    {/* Transfer */}
+                    <td className="py-3 px-4 text-center border-r border-slate-100 font-mono font-semibold text-slate-800">
                       {formatRateCell(c.transfer)}
                     </td>
 
-                    {/* Selling Rate */}
-                    <td className="py-3.5 px-4 sm:px-6 text-right font-mono font-bold text-rose-700">
+                    {/* Sell */}
+                    <td className="py-3 px-4 sm:px-6 text-right font-mono font-bold text-rose-700">
                       {formatRateCell(c.sell)}
                     </td>
                   </tr>
@@ -718,239 +653,6 @@ export const ForexTrading: React.FC = () => {
               )}
             </tbody>
           </table>
-        </div>
-      </section>
-
-      {/* ========================================================================= */}
-      {/* 3. SECTION: GIÁ VÀNG (Exact Match to PDF Page 3)                          */}
-      {/* ========================================================================= */}
-      <section className="bg-white rounded-2xl shadow-xs border border-slate-200/80 overflow-hidden">
-        <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <span className="p-2 rounded-xl bg-amber-50 text-amber-600 border border-amber-200/60">
-              <Sparkles className="w-5 h-5" />
-            </span>
-            <div>
-              <h3 className="text-xl font-extrabold text-[#003B70] tracking-tight">
-                {goldRates.title}
-              </h3>
-              <p className="text-xs text-slate-500">
-                Bảng niêm yết giá vàng miếng và vàng trang sức tại VietinBank
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 text-xs">
-            <span className="font-semibold text-slate-600">{goldRates.filterDateLabel}:</span>
-            <input
-              type="date"
-              value={goldFilterDate}
-              onChange={(e) => setGoldFilterDate(e.target.value)}
-              className="bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-lg text-slate-700 font-medium focus:outline-none"
-            />
-          </div>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs sm:text-sm">
-            <thead>
-              <tr className="bg-[#004785] text-white font-bold text-xs uppercase">
-                <th className="py-3 px-4 sm:px-6">{goldRates.columns.updatedAt}</th>
-                <th className="py-3 px-4">{goldRates.columns.organization}</th>
-                <th className="py-3 px-4">{goldRates.columns.goldType}</th>
-                <th className="py-3 px-4 text-center">{goldRates.columns.weight}</th>
-                <th className="py-3 px-4 text-right">{goldRates.columns.buyPrice}</th>
-                <th className="py-3 px-4 text-right">{goldRates.columns.sellPrice}</th>
-                <th className="py-3 px-4 text-center">{goldRates.columns.unit}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {goldRates.items.map((item, i) => (
-                <tr key={i} className="hover:bg-amber-50/40 transition-colors">
-                  <td className="py-3.5 px-4 sm:px-6 font-mono text-slate-600">
-                    {item.updatedAt}
-                  </td>
-                  <td className="py-3.5 px-4 font-bold text-slate-800">
-                    {item.organization}
-                  </td>
-                  <td className="py-3.5 px-4 font-semibold text-[#005596]">
-                    {item.goldType}
-                  </td>
-                  <td className="py-3.5 px-4 text-center font-medium text-slate-700">
-                    {item.weight}
-                  </td>
-                  <td className="py-3.5 px-4 text-right font-mono font-bold text-slate-800">
-                    {item.buyPrice}
-                  </td>
-                  <td className="py-3.5 px-4 text-right font-mono font-bold text-rose-700">
-                    {item.sellPrice}
-                  </td>
-                  <td className="py-3.5 px-4 text-center text-xs text-slate-500">
-                    {item.unit}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      {/* ========================================================================= */}
-      {/* 4. SECTION: ĐĂNG KÝ NHẬN TỶ GIÁ / BẢN TIN NGOẠI HỐI (PDF Page 3)         */}
-      {/* ========================================================================= */}
-      <section className="bg-white rounded-2xl shadow-xs border border-slate-200/80 overflow-hidden">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-0">
-          {/* Left Form: Đăng ký nhận tỷ giá */}
-          <div className="lg:col-span-6 p-6 sm:p-8 flex flex-col justify-between space-y-6">
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="p-1.5 rounded-lg bg-rose-50 text-[#D71920]">
-                  <Mail className="w-5 h-5" />
-                </span>
-                <h3 className="text-xl font-extrabold text-[#003B70] tracking-tight">
-                  {newsletter.title}
-                </h3>
-              </div>
-              <p className="text-xs text-slate-500 leading-relaxed">
-                {newsletter.subtitle}
-              </p>
-            </div>
-
-            {formSubmitted ? (
-              <div className="p-5 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 space-y-2">
-                <div className="flex items-center gap-2 font-bold text-sm text-emerald-700">
-                  <CheckCircle2 className="w-5 h-5" />
-                  <span>Đăng ký thành công!</span>
-                </div>
-                <p className="text-xs leading-relaxed">{newsletter.successMessage}</p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFormSubmitted(false);
-                    setFullName('');
-                    setEmail('');
-                    setNewsletterType('');
-                  }}
-                  className="mt-3 text-xs font-bold text-emerald-700 hover:underline cursor-pointer"
-                >
-                  Đăng ký email khác &rarr;
-                </button>
-              </div>
-            ) : (
-              <form onSubmit={handleNewsletterSubmit} className="space-y-4">
-                {/* Họ và tên */}
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                    {newsletter.fullNameLabel}
-                  </label>
-                  <input
-                    type="text"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder={newsletter.fullNamePlaceholder}
-                    className="w-full bg-slate-50 px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-[#005596] focus:ring-2 focus:ring-sky-100 text-xs sm:text-sm text-slate-800"
-                  />
-                </div>
-
-                {/* Email */}
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                    {newsletter.emailLabel}
-                  </label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder={newsletter.emailPlaceholder}
-                    className="w-full bg-slate-50 px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-[#005596] focus:ring-2 focus:ring-sky-100 text-xs sm:text-sm text-slate-800"
-                  />
-                </div>
-
-                {/* Loại bản tin */}
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                    {newsletter.newsletterTypeLabel}
-                  </label>
-                  <select
-                    value={newsletterType}
-                    onChange={(e) => setNewsletterType(e.target.value)}
-                    className="w-full bg-slate-50 px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-[#005596] focus:ring-2 focus:ring-sky-100 text-xs sm:text-sm text-slate-800 cursor-pointer"
-                  >
-                    <option value="">{newsletter.newsletterTypePlaceholder}</option>
-                    {newsletter.options.map((opt, idx) => (
-                      <option key={idx} value={opt}>
-                        {opt}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {formError && (
-                  <p className="text-xs text-rose-600 font-medium">{formError}</p>
-                )}
-
-                {/* Submit Button with Gradient */}
-                <button
-                  type="submit"
-                  className="w-full py-3 px-6 rounded-xl font-bold text-xs sm:text-sm text-white bg-gradient-to-r from-[#005596] via-[#004277] to-[#D71920] hover:opacity-95 shadow-md shadow-[#005596]/20 transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-98"
-                >
-                  <Send className="w-4 h-4" />
-                  <span>{newsletter.submitButton}</span>
-                </button>
-              </form>
-            )}
-
-            <div className="pt-2 text-[11px] text-slate-400">
-              * VietinBank cam kết bảo mật thông tin cá nhân của Quý khách theo quy định pháp luật.
-            </div>
-          </div>
-
-          {/* Right Column: VietinBank Advisory Desk Photo & Hotline */}
-          <div className="lg:col-span-6 bg-gradient-to-br from-[#002D54] to-[#004B87] relative overflow-hidden flex flex-col justify-between p-6 sm:p-8 text-white">
-            <div className="relative z-10 space-y-4">
-              <span className="inline-block px-3 py-1 rounded-full text-[11px] font-bold bg-white/10 text-sky-200 border border-white/20">
-                {brand.branchName}
-              </span>
-
-              <h4 className="text-lg sm:text-xl font-bold leading-snug text-white">
-                Tư vấn giao dịch ngoại tệ & chuyển tiền quốc tế chuyên nghiệp
-              </h4>
-
-              <p className="text-xs text-sky-100/90 leading-relaxed">
-                Đội ngũ chuyên viên VietinBank Chi Nhánh Bạc Liêu luôn sẵn sàng hỗ trợ Quý khách hàng cá nhân và doanh nghiệp với mức tỷ giá cạnh tranh nhất và thủ tục tinh gọn.
-              </p>
-            </div>
-
-            {/* Photo Card matching PDF Page 3 */}
-            <div className="relative z-10 my-4 rounded-xl overflow-hidden shadow-lg border border-white/20">
-              <img
-                src={media.consultingPhoto}
-                alt="Tư vấn ngoại hối VietinBank"
-                className="w-full h-48 sm:h-56 object-cover hover:scale-105 transition-transform duration-500"
-              />
-              <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-3 text-white text-xs">
-                <p className="font-bold">Quầy giao dịch & tư vấn ngoại hối VietinBank</p>
-                <p className="text-[11px] text-slate-200">
-                  Địa chỉ: {brand.address}
-                </p>
-              </div>
-            </div>
-
-            <div className="relative z-10 pt-2 flex flex-wrap items-center justify-between gap-3 text-xs border-t border-white/10">
-              <div>
-                <span className="text-sky-300 block text-[11px]">Hotline tư vấn nhanh:</span>
-                <span className="font-mono font-bold text-amber-300 text-sm sm:text-base">
-                  {brand.consultant.formattedPhone}
-                </span>
-              </div>
-              <div>
-                <span className="text-sky-300 block text-[11px]">Tổng đài VietinBank:</span>
-                <span className="font-mono font-bold text-white text-sm sm:text-base">
-                  1900 558 868
-                </span>
-              </div>
-            </div>
-          </div>
         </div>
       </section>
     </div>
