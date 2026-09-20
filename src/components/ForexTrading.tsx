@@ -154,6 +154,7 @@ export const ForexTrading: React.FC = () => {
   const { converter, exchangeRates } = forexTrading;
 
   // 1. Converter State (Default value '0' matching PDF Page 1)
+  const [activeSubTab, setActiveSubTab] = useState<'rates' | 'chart'>('rates');
   const [activeTab, setActiveTab] = useState<ForexTransactionType>('cashBuy');
   const [selectedCurrencyCode, setSelectedCurrencyCode] = useState<string>('USD');
   const [rawAmountInput, setRawAmountInput] = useState<string>('0');
@@ -407,562 +408,627 @@ export const ForexTrading: React.FC = () => {
   }, [filterDate, filterTime, formattedDisplayDate]);
 
   return (
-    <div className="space-y-8 animate-fadeIn text-slate-800">
+    <div className="space-y-6 animate-fadeIn text-slate-800">
       {/* ========================================================================= */}
-      {/* 1. SECTION: QUY ĐỔI TỶ GIÁ NGOẠI TỆ/VND (Trang 1 PDF)                     */}
+      {/* UNIFIED CONTAINER MATCHING PDF PAGES 1, 2, 3                             */}
       {/* ========================================================================= */}
       <section className="bg-white rounded-2xl shadow-xs border border-slate-200/80 p-6 sm:p-8 space-y-6">
-        {/* Main Title & Active Date Pill */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <h2 className="text-xl sm:text-2xl font-extrabold text-[#003B70] tracking-tight">
-              {converter.title}
-            </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Tự động áp dụng tỷ giá của ngày được chọn tại Bảng tỷ giá bên dưới
-            </p>
-          </div>
-          <div
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-2xs self-start sm:self-auto"
-          >
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
-            <span>Áp dụng tỷ giá ngày {formattedDisplayDate}</span>
-          </div>
-        </div>
-
-        {/* Transaction Mode Tabs matching Page 1 */}
-        <div className="inline-flex items-center gap-1.5 p-1 bg-slate-100/90 rounded-xl">
-          {converter.tabs.map((tab) => {
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id as ForexTransactionType)}
-                className={`py-2 px-4 sm:px-5 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-                  isActive
-                    ? 'bg-[#D71920] text-white shadow-xs'
-                    : 'text-slate-600 hover:text-[#005596] hover:bg-white/80'
-                }`}
-              >
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* If USD or EUR in Cash Buy mode: Mệnh giá 50, 100 (*) vs < 50 (&) */}
-        {activeTab === 'cashBuy' && (selectedCurrencyCode === 'USD' || selectedCurrencyCode === 'EUR') && (
-          <div className="flex flex-wrap items-center gap-2 p-3 bg-sky-50/70 border border-sky-100 rounded-xl text-xs text-slate-700">
-            <span className="font-semibold text-[#005596]">Mệnh giá tiền mặt:</span>
-            <div className="inline-flex rounded-lg border border-sky-200 bg-white p-0.5">
-              <button
-                type="button"
-                onClick={() => setUsdEurNoteType('star')}
-                className={`px-3 py-1 rounded-md text-xs font-bold transition-colors cursor-pointer ${
-                  usdEurNoteType === 'star'
-                    ? 'bg-[#005596] text-white'
-                    : 'text-slate-600 hover:text-[#005596]'
-                }`}
-              >
-                * Mệnh giá 50, 100 ({formatRateCell(currentCurrency.cashCheckStar)})
-              </button>
-              <button
-                type="button"
-                onClick={() => setUsdEurNoteType('amp')}
-                className={`px-3 py-1 rounded-md text-xs font-bold transition-colors cursor-pointer ${
-                  usdEurNoteType === 'amp'
-                    ? 'bg-[#005596] text-white'
-                    : 'text-slate-600 hover:text-[#005596]'
-                }`}
-              >
-                & Mệnh giá &lt; 50 ({formatRateCell(currentCurrency.cashCheckAmp)})
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* 2-Column Converter Boxes matching PDF Page 1 */}
-        <div className="grid grid-cols-1 md:grid-cols-11 gap-4 items-center">
-          {/* Box 1: Số tiền quý khách cần quy đổi */}
-          <div
-            className={`md:col-span-5 bg-slate-50/90 p-4 rounded-xl border transition-all ${
-              inputError
-                ? 'border-amber-400 ring-2 ring-amber-100'
-                : 'border-slate-200 focus-within:border-[#005596] focus-within:ring-2 focus-within:ring-sky-100'
-            }`}
-          >
-            <label className="block text-xs font-medium text-slate-500 mb-2">
-              {!isReverse ? converter.labels.inputAmount : 'Số tiền VND cần quy đổi'}
-            </label>
-
-            <div className="flex items-center justify-between gap-3">
-              <input
-                type="text"
-                inputMode="decimal"
-                value={rawAmountInput}
-                onChange={handleAmountChange}
-                onKeyDown={handleKeyDown}
-                placeholder="0"
-                className="w-full bg-transparent text-2xl sm:text-3xl font-bold text-slate-800 focus:outline-none font-mono"
-              />
-
-              {!isReverse ? (
-                <div className="relative shrink-0">
-                  <select
-                    value={selectedCurrencyCode}
-                    onChange={(e) => setSelectedCurrencyCode(e.target.value)}
-                    aria-label="Chọn loại ngoại tệ quy đổi"
-                    className="appearance-none bg-white font-bold text-sm text-slate-800 py-2 pl-3 pr-8 rounded-lg border border-slate-200 shadow-2xs hover:border-[#005596] focus:outline-none cursor-pointer"
-                  >
-                    {effectiveCurrencies.map((c) => (
-                      <option key={c.code} value={c.code}>
-                        {c.flag} {c.code}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500 text-xs">
-                    ▼
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center gap-1.5 bg-white px-3 py-2 rounded-lg border border-slate-200 font-bold text-sm text-slate-800 shadow-2xs shrink-0">
-                  <span>🇻🇳</span>
-                  <span>VND</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Direction Swap Button */}
-          <div className="md:col-span-1 flex justify-center">
+        {/* 1. Top Subtabs: [Tỷ giá] | [Biểu đồ và bản tin ngoại hối] */}
+        <div className="flex justify-center">
+          <div className="inline-flex p-1 bg-slate-100 rounded-full border border-slate-200">
             <button
               type="button"
-              onClick={() => setIsReverse((prev) => !prev)}
-              title="Đổi chiều quy đổi (Ngoại tệ ⇄ VND)"
-              className="w-10 h-10 rounded-full bg-slate-100 hover:bg-[#005596] text-slate-600 hover:text-white flex items-center justify-center transition-all shadow-xs border border-slate-200 cursor-pointer active:scale-95"
+              onClick={() => setActiveSubTab('rates')}
+              className={`px-6 py-1.5 rounded-full text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                activeSubTab === 'rates'
+                  ? 'bg-[#0072BC] text-white shadow-xs'
+                  : 'text-slate-600 hover:text-[#0072BC]'
+              }`}
             >
-              <ArrowLeftRight className="w-4 h-4" />
+              Tỷ giá
             </button>
-          </div>
-
-          {/* Box 2: Số tiền quy đổi */}
-          <div className="md:col-span-5 bg-sky-50/60 p-4 rounded-xl border border-sky-200/80">
-            <label className="block text-xs font-medium text-sky-900 mb-2">
-              {converter.labels.outputAmount}
-            </label>
-
-            <div className="flex items-center justify-between gap-3">
-              <div className="w-full text-2xl sm:text-3xl font-bold text-[#005596] font-mono tracking-tight truncate">
-                {!isReverse ? formatVND(calculatedResult) : formatFX(calculatedResult)}
-              </div>
-
-              {!isReverse ? (
-                <div className="flex items-center gap-1.5 bg-white px-3 py-2 rounded-lg border border-sky-200 font-bold text-sm text-slate-800 shadow-2xs shrink-0">
-                  <span>🇻🇳</span>
-                  <span>VND</span>
-                </div>
-              ) : (
-                <div className="relative shrink-0">
-                  <select
-                    value={selectedCurrencyCode}
-                    onChange={(e) => setSelectedCurrencyCode(e.target.value)}
-                    aria-label="Chọn loại ngoại tệ nhận sau quy đổi"
-                    className="appearance-none bg-white font-bold text-sm text-slate-800 py-2 pl-3 pr-8 rounded-lg border border-sky-200 shadow-2xs hover:border-[#005596] focus:outline-none cursor-pointer"
-                  >
-                    {effectiveCurrencies.map((c) => (
-                      <option key={c.code} value={c.code}>
-                        {c.flag} {c.code}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500 text-xs">
-                    ▼
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Quick helper buttons */}
-        <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-          <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
-            <span className="text-[11px] text-slate-400">Chọn nhanh:</span>
-            {!isReverse
-              ? [0, 100, 500, 1000, 5000].map((amt) => (
-                  <button
-                    key={amt}
-                    type="button"
-                    onClick={() => setRawAmountInput(amt.toString())}
-                    className="px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-100 hover:bg-[#005596] hover:text-white transition-colors cursor-pointer font-mono text-slate-700"
-                  >
-                    {amt.toLocaleString('vi-VN')}
-                  </button>
-                ))
-              : [10000000, 25000000, 50000000, 100000000].map((amt) => (
-                  <button
-                    key={amt}
-                    type="button"
-                    onClick={() => setRawAmountInput(amt.toString())}
-                    className="px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-100 hover:bg-[#005596] hover:text-white transition-colors cursor-pointer font-mono text-slate-700"
-                  >
-                    {(amt / 1000000).toFixed(0)}Tr
-                  </button>
-                ))}
-          </div>
-
-          <div className="text-xs text-slate-500">
-            Tỷ giá áp dụng ngày {formattedDisplayDate}:{' '}
-            <strong className="text-[#005596]">
-              1 {currentCurrency.code} = {formatRateCell(effectiveRate)} VND
-            </strong>
-          </div>
-        </div>
-
-        {/* Validation Alert Box if invalid */}
-        {inputError && (
-          <div className="flex items-center gap-2 p-3 bg-amber-50 text-amber-800 border border-amber-200 rounded-xl text-xs font-semibold">
-            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-            <span>{inputError}</span>
-          </div>
-        )}
-
-        {/* ===================================================================== */}
-        {/* NGUYÊN TẮC: QUY ĐỔI SỐ TIỀN (Chính xác theo mô tả Trang 1 PDF)       */}
-        {/* ===================================================================== */}
-        <div className="p-4 sm:p-5 bg-slate-50 rounded-xl border border-slate-200 text-xs sm:text-sm text-slate-700 space-y-2">
-          <p className="font-bold text-[#003B70] text-sm sm:text-base">Nguyên tắc:</p>
-          <p className="font-semibold text-slate-800">Số tiền quy đổi</p>
-          <ul className="list-disc list-inside space-y-1 text-slate-600 ml-1">
-            <li>Bắt buộc nhập</li>
-            <li>Phải là số lớn hơn 0</li>
-            <li>Không cho phép nhập ký tự chữ</li>
-            <li>Nếu nhỏ hơn mức tối thiểu, hiển thị cảnh báo</li>
-          </ul>
-          <div className="pt-2 border-t border-slate-200/80">
-            <p className="font-medium text-slate-600">
-              Thông báo lỗi gợi ý:{' '}
-              <span className="font-semibold text-rose-600">
-                “Vui lòng nhập số quy đổi hợp lệ.”
-              </span>
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* ========================================================================= */}
-      {/* 2. SECTION: TỶ GIÁ THEO TỪNG NGÀY (Trang 1 & Trang 2 PDF)                  */}
-      {/* ========================================================================= */}
-      <section className="bg-white rounded-2xl shadow-xs border border-slate-200/80 p-6 sm:p-8 space-y-6">
-        {/* Section Header: "Thời gian cập nhật", Title "Tỷ giá", Download Button */}
-        <div>
-          <span className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
-            Thời gian cập nhật
-          </span>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <h3 className="text-2xl font-extrabold text-[#003B70] tracking-tight">
-              {exchangeRates.title}
-            </h3>
-
-            {/* Tải xuống bảng tỷ giá ngày đã chọn */}
             <button
               type="button"
-              onClick={handleDownloadRates}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-[#005596] hover:text-[#003B70] hover:bg-sky-50 transition-colors cursor-pointer self-start sm:self-auto"
+              onClick={() => setActiveSubTab('chart')}
+              className={`px-6 py-1.5 rounded-full text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                activeSubTab === 'chart'
+                  ? 'bg-[#0072BC] text-white shadow-xs'
+                  : 'text-slate-600 hover:text-[#0072BC]'
+              }`}
             >
-              <Download className="w-4 h-4 text-[#005596]" />
-              <span>{exchangeRates.downloadButton} ({formattedDisplayDate})</span>
+              Biểu đồ và bản tin ngoại hối
             </button>
           </div>
         </div>
 
-        {/* Filters: Bộ 3 ô lọc chuẩn Trang 1 kèm chuyển ngày linh hoạt */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-          {/* Ngày cập nhật: theo ngày cập nhật mới nhất tại VietinBank & cho phép chọn từng ngày */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="block font-semibold text-slate-700">
-                {exchangeRates.filterDate}
-              </label>
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => handleStepDay(-1)}
-                  className="px-2 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold inline-flex items-center gap-0.5 transition-colors cursor-pointer border border-slate-200"
-                  title="Duyệt tỷ giá ngày trước"
-                >
-                  ◀ Ngày trước
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleStepDay(1)}
-                  className="px-2 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold inline-flex items-center gap-0.5 transition-colors cursor-pointer border border-slate-200"
-                  title="Duyệt tỷ giá ngày sau"
-                >
-                  Ngày sau ▶
-                </button>
-              </div>
-            </div>
-
-            <div className="relative flex items-center">
-              <input
-                type="date"
-                value={filterDate}
-                onChange={(e) => setFilterDate(e.target.value)}
-                className="w-full bg-slate-50/80 px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-800 font-medium focus:outline-none focus:border-[#005596] cursor-pointer"
-              />
-            </div>
-
-            {/* Quick date presets */}
-            <div className="flex flex-wrap items-center gap-1.5 mt-2">
+        {activeSubTab === 'chart' ? (
+          /* Biểu đồ và bản tin ngoại hối View */
+          <div className="space-y-6 pt-2">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h2 className="text-xl sm:text-2xl font-bold text-slate-800">
+                Biểu đồ và bản tin ngoại hối VietinBank
+              </h2>
               <button
                 type="button"
-                onClick={() => {
-                  setFilterDate(getLatestDateStr());
-                  setFilterTime(getLatestTimeStr());
-                }}
-                className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
-                  filterDate === getLatestDateStr()
-                    ? 'bg-[#005596] text-white shadow-xs'
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                }`}
-                title="Xem tỷ giá ngày mới nhất"
+                onClick={() => setActiveSubTab('rates')}
+                className="text-xs text-[#0072BC] font-semibold hover:underline"
               >
-                [Ngày mới nhất]
-              </button>
-              <button
-                type="button"
-                onClick={() => setFilterDate(getLatestDateStr())}
-                className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
-                  filterDate === getLatestDateStr()
-                    ? 'bg-[#005596] text-white shadow-xs'
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                }`}
-              >
-                [Hôm nay]
-              </button>
-              <button
-                type="button"
-                onClick={() => setFilterDate(getYesterdayDateStr())}
-                className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
-                  filterDate === getYesterdayDateStr()
-                    ? 'bg-[#005596] text-white shadow-xs'
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                }`}
-              >
-                [Hôm qua]
+                ← Quay lại Bảng tỷ giá
               </button>
             </div>
 
-            <p className="text-[11px] text-emerald-700 font-medium mt-1.5 leading-snug">
-              ● <span className="font-bold">{dateStatusInfo.badge}:</span> {formattedDisplayDate}
-            </p>
-          </div>
-
-          {/* Thời điểm cập nhật: thời điểm mới nhất */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="block font-semibold text-slate-700">
-                {exchangeRates.filterTime}
-              </label>
-              <span className="text-[11px] text-emerald-600 font-medium">
-                ● Phiên: {filterTime}
-              </span>
-            </div>
-            <div className="relative">
-              <select
-                value={filterTime}
-                onChange={(e) => setFilterTime(e.target.value)}
-                className="appearance-none w-full bg-slate-50/80 px-3.5 py-2.5 pr-8 rounded-xl border border-slate-200 text-slate-800 font-medium focus:outline-none focus:border-[#005596] cursor-pointer"
-              >
-                <option value="16:30:00">16:30:00 (Phiên chiều - Mới nhất)</option>
-                <option value="11:00:00">11:00:00 (Phiên trưa)</option>
-                <option value="08:30:00">08:30:00 (Phiên sáng)</option>
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-slate-500 text-xs">
-                ▼
+            {/* Newsletter Registration */}
+            <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-4">
+              <div>
+                <h3 className="text-base font-bold text-[#003B70]">
+                  {contentData.forexTrading.newsletter.title}
+                </h3>
+                <p className="text-xs text-slate-600 mt-1">
+                  {contentData.forexTrading.newsletter.subtitle}
+                </p>
               </div>
-            </div>
-            <p className="text-[11px] text-slate-500 mt-1">
-              Thời điểm cập nhật theo các phiên niêm yết trong ngày
-            </p>
-          </div>
-
-          {/* Ngoại tệ: Danh mục chọn Tất cả hoặc từng loại ngoại tệ */}
-          <div>
-            <div className="mb-1.5">
-              <label className="block font-semibold text-slate-700">
-                {exchangeRates.filterCurrency}
-              </label>
-            </div>
-            <div className="relative">
-              <select
-                value={filterCurrency}
-                onChange={(e) => setFilterCurrency(e.target.value)}
-                className="appearance-none w-full bg-slate-50/80 px-3.5 py-2.5 pr-8 rounded-xl border border-slate-200 text-slate-800 font-medium focus:outline-none focus:border-[#005596] cursor-pointer"
-              >
-                <option value="all">{exchangeRates.allCurrencies}</option>
-                {effectiveCurrencies.map((c) => (
-                  <option key={c.code} value={c.code}>
-                    {c.code} - {c.name}
-                  </option>
-                ))}
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-slate-500 text-xs">
-                ▼
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    {contentData.forexTrading.newsletter.fullNameLabel}
+                  </label>
+                  <input
+                    type="text"
+                    placeholder={contentData.forexTrading.newsletter.fullNamePlaceholder}
+                    className="w-full bg-white px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:border-[#0072BC]"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    {contentData.forexTrading.newsletter.emailLabel}
+                  </label>
+                  <input
+                    type="email"
+                    placeholder={contentData.forexTrading.newsletter.emailPlaceholder}
+                    className="w-full bg-white px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:border-[#0072BC]"
+                  />
+                </div>
               </div>
+              <button
+                type="button"
+                onClick={() => alert('Cảm ơn quý khách đã đăng ký nhận bản tin tỷ giá VietinBank!')}
+                className="px-5 py-2 bg-[#0072BC] text-white text-xs font-bold rounded-lg hover:bg-[#005596] transition-colors cursor-pointer"
+              >
+                {contentData.forexTrading.newsletter.submitButton}
+              </button>
             </div>
-            <p className="text-[11px] text-slate-500 mt-1">
-              Lọc hiển thị 1 ngoại tệ hoặc toàn bộ 18 loại ngoại tệ
-            </p>
           </div>
-        </div>
+        ) : (
+          /* Tỷ giá Main View */
+          <>
+            {/* 2. Title & Download Button matching Page 1 */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-1">
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-800 tracking-tight">
+                Tỷ giá
+              </h1>
+              <button
+                type="button"
+                onClick={handleDownloadRates}
+                className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-emerald-700 hover:text-emerald-800 hover:underline cursor-pointer self-start sm:self-auto"
+                title={`Tải file CSV: Bang_ty_gia_VietinBank_${filterDate}_${filterTime.replace(/:/g, '')}.csv`}
+              >
+                <Download className="w-4 h-4 text-emerald-600" />
+                <span>Tải xuống bảng tỷ giá</span>
+              </button>
+            </div>
 
-        {/* Khung thông báo ghi chú chuẩn */}
-        <div className="p-4 bg-sky-50/80 border border-sky-200/80 rounded-xl text-xs text-sky-950 space-y-1.5 shadow-2xs">
-          <p className="font-semibold text-[#005596]">
-            Bảng tỷ giá được cập nhật lúc {filterTime} ngày {formattedDisplayDate}/ Exchange rates are updated at {filterTime} {formattedDisplayDate}
-          </p>
-          <p className="text-slate-600">
-            *: Áp dụng cho EUR, USD có mệnh giá 50, 100 (applied for EUR, USD big notes: 50, 100)
-          </p>
-          <p className="text-slate-600">
-            &: Áp dụng cho EUR, USD có mệnh giá &lt; 50 (applied for EUR, USD small notes: &lt; 50)
-          </p>
-        </div>
+            {/* 3. Bộ 3 ô lọc chuẩn Trang 1 */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+              {/* Ngày cập nhật */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-slate-600 font-medium text-xs">
+                    Ngày cập nhật
+                  </label>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => handleStepDay(-1)}
+                      className="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-medium border border-slate-200 cursor-pointer"
+                      title="Duyệt tỷ giá ngày trước"
+                    >
+                      ◀ Ngày trước
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleStepDay(1)}
+                      className="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-medium border border-slate-200 cursor-pointer"
+                      title="Duyệt tỷ giá ngày sau"
+                    >
+                      Ngày sau ▶
+                    </button>
+                  </div>
+                </div>
 
-        {/* Các dòng diễn giải */}
-        <div className="space-y-1.5 text-xs text-slate-600">
-          <p>
-            Đường dẫn nguồn: Ngày Cập nhật, thời điểm cập nhật: là ngày tỷ giá mặc nhiên tự động tại trang wed:{' '}
-            <a
-              href="https://www.vietinbank.vn/ca-nhan/ty-gia-khcn"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[#005596] hover:text-[#D71920] underline underline-offset-2 font-medium inline-flex items-center gap-1"
-            >
-              https://www.vietinbank.vn/ca-nhan/ty-gia-khcn
-              <ExternalLink className="w-3 h-3" />
-            </a>
-          </p>
-          <p className="italic">Lưu ý: Bảng tỷ giá chỉ mang tính chất tham khảo</p>
-          <p className="pt-1.5 text-slate-700 font-medium">
-            Hiển thị ngắn gọn bảng tỷ giá cập nhật hiện tại tham khảo theo mẫu dưới:
-          </p>
-        </div>
+                <div className="relative flex items-center">
+                  <input
+                    type="date"
+                    value={filterDate}
+                    onChange={(e) => setFilterDate(e.target.value)}
+                    className="w-full bg-slate-50/90 px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-800 text-sm font-medium focus:outline-none focus:border-[#0072BC] cursor-pointer"
+                  />
+                </div>
 
-        {/* Quick Search filter bar */}
-        <div className="flex items-center justify-between gap-4">
-          <div className="relative max-w-sm w-full">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Tìm theo mã hoặc tên ngoại tệ..."
-              className="w-full bg-slate-50/80 pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-700 focus:outline-none focus:border-[#005596]"
-            />
-          </div>
-        </div>
-
-        {/* 18-Currencies Table (Trang 2 PDF) */}
-        <div className="overflow-x-auto border border-slate-200 rounded-xl shadow-2xs">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              {/* Row 1: Main Headers */}
-              <tr className="bg-[#003B70] text-white text-xs font-bold uppercase tracking-wider">
-                <th rowSpan={2} className="py-3.5 px-4 sm:px-6 border-r border-[#004e92]/40">
-                  {exchangeRates.columns.currency}
-                </th>
-                <th
-                  colSpan={2}
-                  className="py-2.5 px-4 text-center border-r border-[#004e92]/40 border-b border-[#004e92]/40 bg-[#004785]"
-                >
-                  {exchangeRates.columns.buyingRate}
-                </th>
-                <th rowSpan={2} className="py-3.5 px-4 sm:px-6 text-right">
-                  {exchangeRates.columns.sellingRate}
-                </th>
-              </tr>
-              {/* Row 2: Sub Headers */}
-              <tr className="bg-[#004785] text-sky-100 text-[11px] uppercase font-semibold">
-                <th className="py-2 px-4 text-center border-r border-[#005596]/40">
-                  {exchangeRates.columns.cashAndCheck}
-                </th>
-                <th className="py-2 px-4 text-center border-r border-[#005596]/40">
-                  {exchangeRates.columns.transfer}
-                </th>
-              </tr>
-            </thead>
-
-            <tbody className="divide-y divide-slate-100 text-xs sm:text-sm">
-              {filteredCurrencies.map((c, idx) => {
-                const isSelected = selectedCurrencyCode === c.code;
-                return (
-                  <tr
-                    key={c.code}
-                    onClick={() => setSelectedCurrencyCode(c.code)}
-                    className={`transition-colors cursor-pointer hover:bg-sky-50/60 ${
-                      isSelected
-                        ? 'bg-sky-50/80 font-medium'
-                        : idx % 2 === 0
-                        ? 'bg-white'
-                        : 'bg-slate-50/40'
+                {/* Quick date presets */}
+                <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFilterDate(getLatestDateStr());
+                      setFilterTime(getLatestTimeStr());
+                    }}
+                    className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
+                      filterDate === getLatestDateStr()
+                        ? 'bg-[#0072BC] text-white shadow-xs'
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    }`}
+                    title="Xem tỷ giá ngày mới nhất"
+                  >
+                    [Ngày mới nhất]
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFilterDate(getLatestDateStr())}
+                    className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
+                      filterDate === getLatestDateStr()
+                        ? 'bg-[#0072BC] text-white shadow-xs'
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                     }`}
                   >
-                    {/* Currency */}
-                    <td className="py-3 px-4 sm:px-6 border-r border-slate-100 font-bold text-slate-800">
-                      <div className="flex items-center gap-2.5">
-                        <span className="text-lg">{c.flag}</span>
-                        <div>
-                          <span className="text-[#005596] font-bold">{c.code}</span>
-                          <span className="hidden sm:inline text-xs text-slate-500 ml-1.5 font-normal">
-                            ({c.name})
-                          </span>
-                        </div>
-                      </div>
-                    </td>
+                    [Hôm nay]
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFilterDate(getYesterdayDateStr())}
+                    className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
+                      filterDate === getYesterdayDateStr()
+                        ? 'bg-[#0072BC] text-white shadow-xs'
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    }`}
+                  >
+                    [Hôm qua]
+                  </button>
+                </div>
+                <p className="text-[11px] text-emerald-700 font-medium mt-1.5 leading-snug">
+                  ● <span className="font-bold">{dateStatusInfo.badge}:</span> {formattedDisplayDate}
+                </p>
+              </div>
 
-                    {/* Cash & Check */}
-                    <td className="py-3 px-4 text-center border-r border-slate-100 font-mono">
-                      {c.code === 'USD' || c.code === 'EUR' ? (
-                        <div className="space-y-0.5">
-                          <div className="text-slate-800 font-bold">
-                            * {formatRateCell(c.cashCheckStar)}
-                          </div>
-                          <div className="text-slate-500 text-xs">
-                            & {formatRateCell(c.cashCheckAmp)}
+              {/* Thời điểm cập nhật */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-slate-600 font-medium text-xs">
+                    Thời điểm cập nhật
+                  </label>
+                  <span className="text-[11px] text-emerald-600 font-medium">
+                    ● Phiên: {filterTime}
+                  </span>
+                </div>
+                <div className="relative">
+                  <select
+                    value={filterTime}
+                    onChange={(e) => setFilterTime(e.target.value)}
+                    className="appearance-none w-full bg-slate-50/90 px-3.5 py-2.5 pr-8 rounded-xl border border-slate-200 text-slate-800 text-sm font-medium focus:outline-none focus:border-[#0072BC] cursor-pointer"
+                  >
+                    <option value="19:00:00">19:00:00</option>
+                    <option value="16:30:00">16:30:00 (Phiên chiều - Mới nhất)</option>
+                    <option value="11:00:00">11:00:00 (Phiên trưa)</option>
+                    <option value="08:30:00">08:30:00 (Phiên sáng)</option>
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500 text-xs">
+                    ▼
+                  </div>
+                </div>
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Thời điểm cập nhật theo các phiên niêm yết trong ngày
+                </p>
+              </div>
+
+              {/* Ngoại tệ */}
+              <div>
+                <div className="mb-1.5">
+                  <label className="block text-slate-600 font-medium text-xs">
+                    Ngoại tệ
+                  </label>
+                </div>
+                <div className="relative">
+                  <select
+                    value={filterCurrency}
+                    onChange={(e) => setFilterCurrency(e.target.value)}
+                    className="appearance-none w-full bg-slate-50/90 px-3.5 py-2.5 pr-8 rounded-xl border border-slate-200 text-slate-800 text-sm font-medium focus:outline-none focus:border-[#0072BC] cursor-pointer"
+                  >
+                    <option value="all">Tất cả</option>
+                    {effectiveCurrencies.map((c) => (
+                      <option key={c.code} value={c.code}>
+                        {c.code} - {c.name}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500 text-xs">
+                    ▼
+                  </div>
+                </div>
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Lọc hiển thị 1 ngoại tệ hoặc toàn bộ 18 loại ngoại tệ
+                </p>
+              </div>
+            </div>
+
+            {/* 4. Section: Quy đổi tỷ giá ngoại tệ/VND (Trang 1 PDF) */}
+            <div className="pt-6 border-t border-slate-100 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <h2 className="text-xl sm:text-2xl font-extrabold text-slate-800 tracking-tight">
+                  Quy đổi tỷ giá ngoại tệ/VND
+                </h2>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-300 self-start sm:self-auto">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span>Áp dụng tỷ giá ngày {formattedDisplayDate}</span>
+                </div>
+              </div>
+
+              {/* Tabs: Mua tiền mặt & Séc (Active đỏ) | Mua chuyển khoản | Bán */}
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('cashBuy')}
+                  className={`py-2 px-4 rounded-md text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                    activeTab === 'cashBuy'
+                      ? 'bg-[#E31B23] text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900 bg-slate-50 hover:bg-slate-100'
+                  }`}
+                >
+                  Mua tiền mặt & Séc
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('transferBuy')}
+                  className={`py-2 px-4 rounded-md text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                    activeTab === 'transferBuy'
+                      ? 'bg-[#E31B23] text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900 bg-slate-50 hover:bg-slate-100'
+                  }`}
+                >
+                  Mua chuyển khoản
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('sell')}
+                  className={`py-2 px-4 rounded-md text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                    activeTab === 'sell'
+                      ? 'bg-[#E31B23] text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900 bg-slate-50 hover:bg-slate-100'
+                  }`}
+                >
+                  Bán
+                </button>
+              </div>
+
+              {/* USD & EUR Note selection if cashBuy */}
+              {activeTab === 'cashBuy' && (selectedCurrencyCode === 'USD' || selectedCurrencyCode === 'EUR') && (
+                <div className="flex flex-wrap items-center gap-2 p-2.5 bg-sky-50/70 border border-sky-100 rounded-lg text-xs text-slate-700">
+                  <span className="font-semibold text-[#005596]">Mệnh giá tiền mặt:</span>
+                  <div className="inline-flex rounded-md border border-sky-200 bg-white p-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setUsdEurNoteType('star')}
+                      className={`px-2.5 py-1 rounded text-xs font-bold transition-colors cursor-pointer ${
+                        usdEurNoteType === 'star'
+                          ? 'bg-[#005596] text-white'
+                          : 'text-slate-600 hover:text-[#005596]'
+                      }`}
+                    >
+                      * Mệnh giá 50, 100 ({formatRateCell(currentCurrency.cashCheckStar)})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setUsdEurNoteType('amp')}
+                      className={`px-2.5 py-1 rounded text-xs font-bold transition-colors cursor-pointer ${
+                        usdEurNoteType === 'amp'
+                          ? 'bg-[#005596] text-white'
+                          : 'text-slate-600 hover:text-[#005596]'
+                      }`}
+                    >
+                      & Mệnh giá &lt; 50 ({formatRateCell(currentCurrency.cashCheckAmp)})
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Converter Soft Ice-Blue Box matching Page 1 */}
+              <div className="bg-[#EEF7FC] p-4 sm:p-5 rounded-xl border border-sky-100 space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-11 gap-3 items-center">
+                  {/* Box 1: Số tiền quý khách cần quy đổi */}
+                  <div className="md:col-span-5 bg-white p-3.5 rounded-lg border border-slate-200/90 shadow-2xs">
+                    <label className="block text-xs font-medium text-slate-500 mb-1.5">
+                      {!isReverse ? 'Số tiền quý khách cần quy đổi' : 'Số tiền VND cần quy đổi'}
+                    </label>
+                    <div className="flex items-center justify-between gap-2">
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        value={rawAmountInput}
+                        onChange={handleAmountChange}
+                        onKeyDown={handleKeyDown}
+                        placeholder="0"
+                        className="w-full bg-transparent text-2xl sm:text-3xl font-bold text-slate-800 focus:outline-none font-mono"
+                      />
+                      {!isReverse ? (
+                        <div className="relative shrink-0">
+                          <select
+                            value={selectedCurrencyCode}
+                            onChange={(e) => setSelectedCurrencyCode(e.target.value)}
+                            aria-label="Chọn loại ngoại tệ quy đổi"
+                            className="appearance-none bg-slate-50 hover:bg-slate-100 font-bold text-sm text-slate-800 py-1.5 pl-2.5 pr-7 rounded-lg border border-slate-200 cursor-pointer"
+                          >
+                            {effectiveCurrencies.map((c) => (
+                              <option key={c.code} value={c.code}>
+                                {c.flag} {c.code}
+                              </option>
+                            ))}
+                          </select>
+                          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500 text-xs">
+                            ▼
                           </div>
                         </div>
                       ) : (
-                        <span className="text-slate-800">{formatRateCell(c.cashCheck)}</span>
+                        <div className="flex items-center gap-1.5 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 font-bold text-sm text-slate-800 shrink-0">
+                          <span>🇻🇳</span>
+                          <span>VND</span>
+                        </div>
                       )}
-                    </td>
+                    </div>
+                  </div>
 
-                    {/* Transfer */}
-                    <td className="py-3 px-4 text-center border-r border-slate-100 font-mono font-semibold text-slate-800">
-                      {formatRateCell(c.transfer)}
-                    </td>
+                  {/* Direction Swap */}
+                  <div className="md:col-span-1 flex justify-center">
+                    <button
+                      type="button"
+                      onClick={() => setIsReverse((prev) => !prev)}
+                      title="Đổi chiều quy đổi"
+                      className="w-9 h-9 rounded-full bg-white hover:bg-[#0072BC] text-slate-600 hover:text-white flex items-center justify-center transition-all shadow-2xs border border-slate-200 cursor-pointer active:scale-95"
+                    >
+                      <ArrowLeftRight className="w-4 h-4" />
+                    </button>
+                  </div>
 
-                    {/* Sell */}
-                    <td className="py-3 px-4 sm:px-6 text-right font-mono font-bold text-rose-700">
-                      {formatRateCell(c.sell)}
-                    </td>
+                  {/* Box 2: Số tiền quy đổi */}
+                  <div className="md:col-span-5 bg-white p-3.5 rounded-lg border border-slate-200/90 shadow-2xs">
+                    <label className="block text-xs font-medium text-slate-500 mb-1.5">
+                      Số tiền quy đổi
+                    </label>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="w-full text-2xl sm:text-3xl font-bold text-slate-800 font-mono truncate">
+                        {!isReverse ? formatVND(calculatedResult) : formatFX(calculatedResult)}
+                      </div>
+                      {!isReverse ? (
+                        <div className="flex items-center gap-1.5 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 font-bold text-sm text-slate-800 shrink-0">
+                          <span>🇻🇳</span>
+                          <span>VND</span>
+                        </div>
+                      ) : (
+                        <div className="relative shrink-0">
+                          <select
+                            value={selectedCurrencyCode}
+                            onChange={(e) => setSelectedCurrencyCode(e.target.value)}
+                            aria-label="Chọn loại ngoại tệ nhận sau quy đổi"
+                            className="appearance-none bg-slate-50 hover:bg-slate-100 font-bold text-sm text-slate-800 py-1.5 pl-2.5 pr-7 rounded-lg border border-slate-200 cursor-pointer"
+                          >
+                            {effectiveCurrencies.map((c) => (
+                              <option key={c.code} value={c.code}>
+                                {c.flag} {c.code}
+                              </option>
+                            ))}
+                          </select>
+                          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500 text-xs">
+                            ▼
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Validation Error Banner (Page 1 Rule) */}
+                {inputError && (
+                  <div className="flex items-center gap-2 p-2.5 bg-rose-50 text-rose-700 border border-rose-200 rounded-lg text-xs font-semibold">
+                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                    <span>{inputError}</span>
+                  </div>
+                )}
+
+                {/* Sub-info: Quick Select & Applied Rate */}
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs text-slate-500">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] text-slate-400">Chọn nhanh:</span>
+                    {!isReverse
+                      ? [0, 100, 500, 1000, 5000].map((amt) => (
+                          <button
+                            key={amt}
+                            type="button"
+                            onClick={() => setRawAmountInput(amt.toString())}
+                            className="px-2 py-0.5 rounded bg-white hover:bg-[#0072BC] hover:text-white transition-colors cursor-pointer border border-slate-200 text-slate-700 font-mono text-[11px]"
+                          >
+                            {amt.toLocaleString('vi-VN')}
+                          </button>
+                        ))
+                      : [10000000, 25000000, 50000000, 100000000].map((amt) => (
+                          <button
+                            key={amt}
+                            type="button"
+                            onClick={() => setRawAmountInput(amt.toString())}
+                            className="px-2 py-0.5 rounded bg-white hover:bg-[#0072BC] hover:text-white transition-colors cursor-pointer border border-slate-200 text-slate-700 font-mono text-[11px]"
+                          >
+                            {(amt / 1000000).toFixed(0)}Tr
+                          </button>
+                        ))}
+                  </div>
+                  <div className="text-slate-600">
+                    Tỷ giá áp dụng ngày {formattedDisplayDate}:{' '}
+                    <strong className="text-[#005596]">
+                      1 {currentCurrency.code} = {formatRateCell(effectiveRate)} VND
+                    </strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 5. Khung thông báo chuẩn & Diễn giải (Trang 1 & Trang 2 PDF) */}
+            <div className="space-y-3 text-xs pt-2">
+              <div className="p-3.5 bg-sky-50/80 border border-sky-200/80 rounded-xl space-y-1.5 text-sky-950 shadow-2xs">
+                <p className="font-semibold text-[#005596]">
+                  {updateNoticeText}
+                </p>
+                <p className="text-slate-600">
+                  *: Áp dụng cho EUR, USD có mệnh giá 50, 100 (applied for EUR, USD big notes: 50, 100)
+                </p>
+                <p className="text-slate-600">
+                  &: Áp dụng cho EUR, USD có mệnh giá &lt; 50 (applied for EUR, USD small notes: &lt; 50)
+                </p>
+              </div>
+
+              <div className="space-y-1 text-slate-600">
+                <p>
+                  Đường dẫn nguồn: Ngày Cập nhật, thời điểm cập nhật: là ngày tỷ giá mặc nhiên tự động tại trang wed:{' '}
+                  <a
+                    href="https://www.vietinbank.vn/ca-nhan/ty-gia-khcn"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#0072BC] hover:underline font-medium inline-flex items-center gap-1"
+                  >
+                    https://www.vietinbank.vn/ca-nhan/ty-gia-khcn
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </p>
+                <p className="italic">Lưu ý: Bảng tỷ giá chỉ mang tính chất tham khảo</p>
+                <p className="font-medium text-slate-700 pt-1">
+                  Hiển thị ngắn gọn bảng tỷ giá cập nhật hiện tại tham khảo theo mẫu dưới:
+                </p>
+              </div>
+            </div>
+
+            {/* 6. Quick Search filter bar */}
+            <div className="flex items-center justify-between gap-4 pt-2">
+              <div className="relative max-w-xs w-full">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Tìm theo mã hoặc tên ngoại tệ..."
+                  className="w-full bg-slate-50 pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-700 focus:outline-none focus:border-[#0072BC]"
+                />
+              </div>
+            </div>
+
+            {/* 7. Table of 18 Currencies (Trang 3 PDF) */}
+            <div className="overflow-x-auto border border-slate-200 rounded-xl shadow-2xs">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  {/* Row 1: Main Headers */}
+                  <tr className="bg-[#005596] text-white text-xs font-bold uppercase tracking-wider">
+                    <th rowSpan={2} className="py-3 px-4 sm:px-6 border-r border-[#006bbd]">
+                      <div>{exchangeRates.columns.currency}</div>
+                      <div className="font-normal text-[11px] text-sky-200 lowercase">Currency</div>
+                    </th>
+                    <th
+                      colSpan={2}
+                      className="py-2.5 px-4 text-center border-r border-[#006bbd] border-b border-[#006bbd]"
+                    >
+                      <div>{exchangeRates.columns.buyingRate}</div>
+                      <div className="font-normal text-[11px] text-sky-200 lowercase">Buying rate</div>
+                    </th>
+                    <th rowSpan={2} className="py-3 px-4 sm:px-6 text-right">
+                      <div>{exchangeRates.columns.sellingRate}</div>
+                      <div className="font-normal text-[11px] text-sky-200 lowercase">Selling rate</div>
+                    </th>
                   </tr>
-                );
-              })}
+                  {/* Row 2: Sub Headers */}
+                  <tr className="bg-[#005596] text-white text-[11px] font-semibold">
+                    <th className="py-2 px-4 text-center border-r border-[#006bbd]">
+                      <div>{exchangeRates.columns.cashAndCheck}</div>
+                      <div className="font-normal text-[10px] text-sky-200 lowercase">Cash & Check</div>
+                    </th>
+                    <th className="py-2 px-4 text-center border-r border-[#006bbd]">
+                      <div>{exchangeRates.columns.transfer}</div>
+                      <div className="font-normal text-[10px] text-sky-200 lowercase">Transfer</div>
+                    </th>
+                  </tr>
+                </thead>
 
-              {filteredCurrencies.length === 0 && (
-                <tr>
-                  <td colSpan={4} className="py-8 text-center text-slate-400">
-                    Không tìm thấy ngoại tệ phù hợp với bộ lọc.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                <tbody className="divide-y divide-slate-100 text-xs sm:text-sm">
+                  {filteredCurrencies.map((c, idx) => {
+                    const isSelected = selectedCurrencyCode === c.code;
+                    return (
+                      <tr
+                        key={c.code}
+                        onClick={() => setSelectedCurrencyCode(c.code)}
+                        className={`transition-colors cursor-pointer hover:bg-sky-50/60 ${
+                          isSelected
+                            ? 'bg-sky-50/80 font-medium'
+                            : idx % 2 === 0
+                            ? 'bg-white'
+                            : 'bg-slate-50/40'
+                        }`}
+                      >
+                        {/* Currency */}
+                        <td className="py-3 px-4 sm:px-6 border-r border-slate-100 font-bold text-slate-800">
+                          <div className="flex items-center gap-2.5">
+                            <span className="text-lg">{c.flag}</span>
+                            <div>
+                              <span className="text-[#005596] font-bold">{c.code}</span>
+                              <span className="hidden sm:inline text-xs text-slate-500 ml-1.5 font-normal">
+                                ({c.name})
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Cash & Check */}
+                        <td className="py-3 px-4 text-center border-r border-slate-100 font-mono">
+                          {c.code === 'USD' || c.code === 'EUR' ? (
+                            <div className="space-y-0.5">
+                              <div className="text-slate-800 font-medium">
+                                * {formatRateCell(c.cashCheckStar)}
+                              </div>
+                              <div className="text-slate-800 font-medium">
+                                & {formatRateCell(c.cashCheckAmp)}
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-slate-800">{formatRateCell(c.cashCheck)}</span>
+                          )}
+                        </td>
+
+                        {/* Transfer */}
+                        <td className="py-3 px-4 text-center border-r border-slate-100 font-mono font-medium text-slate-800">
+                          {formatRateCell(c.transfer)}
+                        </td>
+
+                        {/* Sell */}
+                        <td className="py-3 px-4 sm:px-6 text-right font-mono font-medium text-slate-800">
+                          {formatRateCell(c.sell)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+
+                  {filteredCurrencies.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="py-8 text-center text-slate-400">
+                        Không tìm thấy ngoại tệ phù hợp với bộ lọc.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
       </section>
     </div>
   );

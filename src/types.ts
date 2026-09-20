@@ -181,6 +181,8 @@ export interface GoldRateItem {
   unit: string;
 }
 
+export type PledgeRepaymentMethod = 'declining' | 'bullet';
+
 export interface PledgeScheduleRow {
   period: number;
   paymentDate: string;
@@ -204,6 +206,7 @@ export interface PledgeCalculationResult {
   depositMaturityDate: string;
   depositRate: number;
   currency: string;
+  repaymentMethod: PledgeRepaymentMethod;
   repaymentCycle: RepaymentCycle;
   repaymentDay: number;
   roundingRule: RoundingRule;

@@ -51,6 +51,28 @@ export default function App() {
     }
   };
 
+  // Dynamic latest date & session for Forex preview in Hero banner
+  const latestForexDateStr = (() => {
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    return `${day}/${month}`;
+  })();
+
+  const latestForexTimeStr = (() => {
+    const now = new Date();
+    const hh = now.getHours();
+    const min = now.getMinutes();
+    const totalMin = hh * 60 + min;
+    if (totalMin >= 16 * 60 + 30 || totalMin < 8 * 60 + 30) {
+      return '16:30';
+    } else if (totalMin >= 11 * 60) {
+      return '11:00';
+    } else {
+      return '08:30';
+    }
+  })();
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 font-sans text-slate-800">
       {/* Top Header with VietinBank branding, consultant contact & navigation */}
@@ -195,7 +217,7 @@ export default function App() {
                 <div>
                   <span className="text-sky-300 block">Cập nhật lúc:</span>
                   <span className="text-base sm:text-lg font-bold text-white font-mono">
-                    16:30 (13/09)
+                    {latestForexTimeStr} ({latestForexDateStr})
                   </span>
                 </div>
               </div>
