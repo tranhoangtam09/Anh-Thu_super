@@ -136,7 +136,7 @@ export default function App() {
                 ? contentData.header.subtitle
                 : currentModule === 'forex'
                 ? 'Tiện ích quy đổi tỷ giá hối đoái ngoại tệ, tra cứu biểu giá mua bán tiền mặt và chuyển khoản 18 đồng ngoại tệ niêm yết chính thức tại VietinBank.'
-                : 'Tự động tính toán hạn mức vay tối đa theo tỷ lệ giá trị sổ, số tiền trả nợ định kỳ và lập lịch thu nợ chi tiết theo phương thức gốc đều, lãi giảm dần.'}
+                : 'Mô phỏng khoản vay cầm cố sổ tiết kiệm, tự động tính hạn mức, khoản trả nợ đến hạn.'}
             </p>
 
             {/* Quick module stats */}
@@ -221,34 +221,7 @@ export default function App() {
                   </span>
                 </div>
               </div>
-            ) : (
-              <div className="mt-6 pt-5 border-t border-sky-800/80 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
-                <div>
-                  <span className="text-sky-300 block">Tỷ lệ cho vay tối đa:</span>
-                  <span className="text-base sm:text-lg font-bold text-amber-300 font-mono">
-                    Đến 95% sổ
-                  </span>
-                </div>
-                <div>
-                  <span className="text-sky-300 block">Thời hạn vay linh hoạt:</span>
-                  <span className="text-base sm:text-lg font-bold text-white font-mono">
-                    1 - 120 tháng
-                  </span>
-                </div>
-                <div>
-                  <span className="text-sky-300 block">Phương thức tính lãi:</span>
-                  <span className="text-base sm:text-lg font-bold text-white">
-                    Dư nợ giảm dần
-                  </span>
-                </div>
-                <div>
-                  <span className="text-sky-300 block">Tất toán kỳ cuối:</span>
-                  <span className="text-base sm:text-lg font-bold text-emerald-300 font-mono">
-                    Dư nợ về 0
-                  </span>
-                </div>
-              </div>
-            )}
+            ) : null}
           </div>
         </div>
 

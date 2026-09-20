@@ -246,7 +246,7 @@ export const PledgeLoanCalculator: React.FC = () => {
             CẦM CỐ SỔ TIẾT KIỆM
           </h2>
           <p className="text-xs sm:text-sm text-sky-100 mt-1">
-            Mô phỏng khoản vay cầm cố sổ tiết kiệm, tự động tính hạn mức và lập lịch trả nợ.
+            Mô phỏng khoản vay cầm cố sổ tiết kiệm, tự động tính hạn mức, khoản trả nợ đến hạn.
           </p>
         </div>
 
